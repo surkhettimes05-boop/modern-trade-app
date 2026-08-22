@@ -19,7 +19,7 @@ workflows:
       - name: Build downloadable APK
         script: |
           flutter build apk --debug \
-            --dart-define=API_BASE_URL="${API_BASE_URL:-http://10.0.2.2:3001}"
+            --dart-define=API_BASE_URL="${API_BASE_URL:-https://storesync-backend-dg8z.onrender.com}"
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
       - flutter_drive.log

@@ -114,7 +114,7 @@ class AppState extends ChangeNotifier {
             ApiClient(
               baseUrl: const String.fromEnvironment(
                 'API_BASE_URL',
-                defaultValue: 'http://10.0.2.2:3001',
+                defaultValue: 'https://storesync-backend-dg8z.onrender.com',
               ),
             );
 
