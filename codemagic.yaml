@@ -1,0 +1,25 @@
+workflows:
+  android-test-apk:
+    name: Android test APK
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      java: 17
+    scripts:
+      - name: Configure Android SDK
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Install Flutter dependencies
+        script: flutter pub get
+      - name: Analyze source
+        script: flutter analyze
+      - name: Run tests
+        script: flutter test
+      - name: Build downloadable APK
+        script: |
+          flutter build apk --debug \
+            --dart-define=API_BASE_URL="${API_BASE_URL:-http://10.0.2.2:3001}"
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+      - flutter_drive.log
