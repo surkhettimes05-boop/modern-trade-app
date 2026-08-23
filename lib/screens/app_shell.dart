@@ -17,10 +17,16 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   var _index = 0;
+  final _catalogKey = GlobalKey<CatalogScreenState>();
+  void _openShop([String? categoryId]) {
+    setState(() => _index = 1);
+    _catalogKey.currentState?.selectCategory(categoryId);
+  }
+
   late final _pages = <Widget>[
-    HomeScreen(onShop: () => setState(() => _index = 1)),
-    const CatalogScreen(),
-    CartScreen(onShop: () => setState(() => _index = 1)),
+    HomeScreen(onShop: _openShop),
+    CatalogScreen(key: _catalogKey),
+    CartScreen(onShop: _openShop),
     const AccountScreen(),
   ];
 

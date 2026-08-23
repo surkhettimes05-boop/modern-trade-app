@@ -23,3 +23,47 @@ workflows:
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
       - flutter_drive.log
+
+  android-release:
+    name: NOVA MART Android release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      java: 17
+      groups:
+        - nova_mart_android_signing
+      vars:
+        API_BASE_URL: https://storesync-backend-dg8z.onrender.com
+        ANDROID_KEYSTORE_PATH: /tmp/nova-mart-release.jks
+    scripts:
+      - name: Validate release configuration
+        script: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "$(printenv "$name")" ]; then
+              echo "Missing required Codemagic secret: $name"
+              exit 1
+            fi
+          done
+      - name: Restore signing keystore
+        script: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+      - name: Configure Android SDK
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Install Flutter dependencies
+        script: flutter pub get
+      - name: Verify formatting
+        script: dart format --output=none --set-exit-if-changed .
+      - name: Analyze source
+        script: flutter analyze
+      - name: Run tests
+        script: flutter test
+      - name: Build signed app bundle
+        script: |
+          flutter build appbundle --release \
+            --dart-define=API_BASE_URL="$API_BASE_URL" \
+            --dart-define=SUPPORT_PHONE="$SUPPORT_PHONE" \
+            --dart-define=PRIVACY_POLICY_URL="$PRIVACY_POLICY_URL" \
+            --dart-define=TERMS_URL="$TERMS_URL"
+    artifacts:
+      - build/app/outputs/bundle/release/app-release.aab

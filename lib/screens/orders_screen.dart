@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../core/api_client.dart';
 import '../main.dart';
 import '../models/models.dart';
 import '../widgets/common.dart';
@@ -61,7 +62,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     } catch (exception) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(exception.toString())),
+          SnackBar(content: Text(userMessage(exception))),
         );
       }
     }
@@ -80,7 +81,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               return EmptyState(
                 icon: Icons.cloud_off_outlined,
                 title: 'Could not load orders',
-                message: snapshot.error.toString(),
+                message: userMessage(snapshot.error!),
                 action: ElevatedButton(
                     onPressed: _reload, child: const Text('Try again')),
               );

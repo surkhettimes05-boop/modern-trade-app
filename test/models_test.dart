@@ -21,5 +21,39 @@ void main() {
 
   test('formats Nepalese rupee prices', () {
     expect(formatNpr(123456), 'NPR 123,456');
+    expect(formatNpr(123456789.5), 'NPR 123,456,789.5');
+    expect(formatNprMinor(1025), 'NPR 10.25');
+  });
+
+  test('availability uses a strict allow-list', () {
+    for (final status in [
+      'OUT_OF_STOCK',
+      'DISCONTINUED',
+      'BLOCKED',
+      'UNAVAILABLE',
+      'COMING_SOON',
+      'UNKNOWN',
+      ''
+    ]) {
+      final product = Product.fromJson(
+          {'id': 'x', 'price': 1, 'availability_status': status});
+      expect(product.isAvailable, isFalse, reason: status);
+    }
+    expect(
+        Product.fromJson(
+                {'id': 'x', 'price': 1, 'availability_status': ' available '})
+            .isAvailable,
+        isTrue);
+  });
+
+  test('malformed model values fail safely and decimals map to minor units',
+      () {
+    final product = Product.fromJson(
+        {'id': 7, 'price': '10.25', 'rating': 'bad', 'review_count': {}});
+    expect(product.id, '7');
+    expect(product.priceMinor, 1025);
+    expect(product.rating, 0);
+    expect(product.reviewCount, 0);
+    expect(product.isAvailable, isFalse);
   });
 }

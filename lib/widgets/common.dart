@@ -86,8 +86,15 @@ class StoreSelector extends StatelessWidget {
                     contentPadding: EdgeInsets.zero,
                     title: Text(store.name,
                         style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle:
-                        store.address == null ? null : Text(store.address!),
+                    subtitle: Text(
+                        [
+                          if (store.temporarilyClosed) 'TEMPORARILY CLOSED',
+                          if (store.address != null) store.address!,
+                        ].join(' · '),
+                        style: TextStyle(
+                            color: store.temporarilyClosed
+                                ? AppColors.danger
+                                : null)),
                     leading: Icon(
                       state.selectedStore?.id == store.id
                           ? Icons.check_circle
@@ -285,7 +292,7 @@ class ProductCard extends StatelessWidget {
                             }
                           : null,
                       icon: const Icon(Icons.add, size: 17),
-                      label: const Text('Add'),
+                      label: Text(product.isAvailable ? 'Add' : 'Unavailable'),
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(0, 39),
                         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -321,6 +328,10 @@ class ProductImage extends StatelessWidget {
     return Image.network(
       url,
       fit: fit,
+      cacheWidth: (MediaQuery.sizeOf(context).width *
+              MediaQuery.devicePixelRatioOf(context))
+          .clamp(240, 1200)
+          .round(),
       errorBuilder: (_, __, ___) => const ColoredBox(
         color: AppColors.cream,
         child: Center(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../core/api_client.dart';
 import '../main.dart';
 import '../widgets/common.dart';
 
@@ -22,9 +23,8 @@ class _AddressesScreenState extends State<AddressesScreen> {
 
   Future<List<Map<String, dynamic>>> _load() async {
     final state = AppScope.of(context);
-    final response = await state.api.get(
-      '/api/addresses/customer/${state.customer!.id}',
-    );
+    final response =
+        await state.customerRepository.loadAddresses(state.customer!.id);
     if (response is! List) return const [];
     return response
         .whereType<Map>()
@@ -61,7 +61,7 @@ class _AddressesScreenState extends State<AddressesScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await AppScope.of(context).api.delete('/api/addresses/$id');
+    await AppScope.of(context).customerRepository.deleteAddress(id);
     _reload();
   }
 
@@ -83,7 +83,7 @@ class _AddressesScreenState extends State<AddressesScreen> {
               return EmptyState(
                 icon: Icons.cloud_off_outlined,
                 title: 'Could not load addresses',
-                message: snapshot.error.toString(),
+                message: 'Please check your connection and try again.',
                 action: ElevatedButton(
                     onPressed: _reload, child: const Text('Try again')),
               );
@@ -204,7 +204,7 @@ class _AddressFormState extends State<_AddressForm> {
       _error = null;
     });
     try {
-      await AppScope.of(context).api.post('/api/addresses', body: {
+      await AppScope.of(context).customerRepository.createAddress({
         'tole_locality': _tole.text.trim(),
         if (_street.text.trim().isNotEmpty) 'street': _street.text.trim(),
         if (_landmark.text.trim().isNotEmpty) 'landmark': _landmark.text.trim(),
@@ -217,7 +217,7 @@ class _AddressFormState extends State<_AddressForm> {
       });
       if (mounted) Navigator.pop(context, true);
     } catch (exception) {
-      setState(() => _error = exception.toString());
+      setState(() => _error = userMessage(exception));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

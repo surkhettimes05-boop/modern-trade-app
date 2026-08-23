@@ -6,7 +6,7 @@ import '../widgets/common.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onShop});
-  final VoidCallback onShop;
+  final ValueChanged<String?> onShop;
 
   @override
   Widget build(BuildContext context) {
@@ -19,13 +19,13 @@ class HomeScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: _SearchPrompt(onTap: onShop),
+              child: _SearchPrompt(onTap: () => onShop(null)),
             ),
           ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: _Hero(onShop: onShop),
+              child: _Hero(onShop: () => onShop(null)),
             ),
           ),
           SliverToBoxAdapter(
@@ -35,7 +35,8 @@ class HomeScreen extends StatelessWidget {
                 eyebrow: 'StoreSync opening range',
                 title: 'Shop by category',
                 action: TextButton(
-                    onPressed: onShop, child: const Text('View all')),
+                    onPressed: () => onShop(null),
+                    child: const Text('View all')),
               ),
             ),
           ),
@@ -50,7 +51,7 @@ class HomeScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final category = state.categories[index];
                   return InkWell(
-                    onTap: onShop,
+                    onTap: () => onShop(category.id),
                     borderRadius: BorderRadius.circular(14),
                     child: Container(
                       width: 118,
@@ -92,23 +93,32 @@ class HomeScreen extends StatelessWidget {
                 eyebrow: 'Everyday value',
                 title: 'Popular right now',
                 action: TextButton(
-                    onPressed: onShop, child: const Text('Shop all')),
+                    onPressed: () => onShop(null),
+                    child: const Text('Shop all')),
               ),
             ),
           ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-            sliver: SliverGrid.builder(
-              itemCount: state.products.take(6).length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: .58,
-              ),
-              itemBuilder: (context, index) => ProductCard(
-                product: state.products[index],
-              ),
+            sliver: SliverLayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.crossAxisExtent >= 1000
+                    ? 5
+                    : constraints.crossAxisExtent >= 700
+                        ? 4
+                        : 2;
+                return SliverGrid.builder(
+                  itemCount: state.products.take(6).length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: columns == 2 ? .58 : .62,
+                  ),
+                  itemBuilder: (context, index) =>
+                      ProductCard(product: state.products[index]),
+                );
+              },
             ),
           ),
         ],
