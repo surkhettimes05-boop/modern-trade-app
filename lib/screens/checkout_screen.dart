@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../core/api_client.dart';
 import '../main.dart';
 import '../models/models.dart';
 
@@ -84,7 +85,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       if (mounted) Navigator.pop(context);
     } catch (exception) {
-      setState(() => _error = exception.toString());
+      setState(() => _error = userMessage(exception));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -120,9 +121,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ],
               selected: {_deliveryType},
-              onSelectionChanged: (value) =>
-                  setState(() => _deliveryType = value.first),
+              onSelectionChanged: (value) {
+                setState(() => _deliveryType = value.first);
+                _form.currentState?.validate();
+              },
             ),
+            if (_deliveryType == 'PICKUP') ...[
+              const SizedBox(height: 12),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.store, color: AppColors.brand),
+                  title: Text(state.selectedStore?.name ?? 'No store selected'),
+                  subtitle:
+                      Text(state.selectedStore?.address ?? 'Pickup store'),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             Text('Contact and address',
                 style: Theme.of(context)
@@ -148,50 +162,53 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               decoration: const InputDecoration(labelText: 'Mobile number'),
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _address,
-              validator: _required,
-              textInputAction: TextInputAction.next,
-              decoration:
-                  const InputDecoration(labelText: 'Street, ward and locality'),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _city,
-                    validator: _required,
-                    textInputAction: TextInputAction.next,
-                    decoration:
-                        const InputDecoration(labelText: 'City / municipality'),
+            if (_deliveryType == 'DELIVERY') ...[
+              TextFormField(
+                controller: _address,
+                validator: _required,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                    labelText: 'Street, ward and locality'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _city,
+                      validator: _required,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                          labelText: 'City / municipality'),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextFormField(
-                    controller: _state,
-                    validator: _required,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(labelText: 'Province'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _state,
+                      validator: _required,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(labelText: 'Province'),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _postalCode,
-              validator: _required,
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(labelText: 'Postal code'),
-            ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _postalCode,
+                validator: _required,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(labelText: 'Postal code'),
+              ),
+            ],
             const SizedBox(height: 12),
             TextFormField(
               controller: _notes,
               maxLines: 3,
-              decoration:
-                  const InputDecoration(labelText: 'Delivery notes (optional)'),
+              decoration: InputDecoration(
+                  labelText:
+                      '${_deliveryType == 'PICKUP' ? 'Pickup' : 'Delivery'} notes (optional)'),
             ),
             const SizedBox(height: 24),
             Card(

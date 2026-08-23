@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_theme.dart';
+import '../core/app_config.dart';
 
 enum InfoType { help, privacy, terms }
 
@@ -112,16 +113,26 @@ class InfoScreen extends StatelessWidget {
               ),
             ),
           ),
-          if (type == InfoType.help) ...[
+          if (type == InfoType.help && AppConfig.supportPhone.isNotEmpty) ...[
             const Divider(),
             const SizedBox(height: 12),
             ElevatedButton.icon(
-              onPressed: () =>
-                  launchUrl(Uri.parse('https://wa.me/9779800000000')),
+              onPressed: () => launchUrl(Uri.parse(
+                  'https://wa.me/${AppConfig.supportPhone.replaceAll(RegExp(r'\D'), '')}')),
               icon: const Icon(Icons.chat_outlined),
               label: const Text('Contact support on WhatsApp'),
             ),
           ],
+          if (type == InfoType.privacy && AppConfig.privacyUrl.isNotEmpty)
+            TextButton.icon(
+                onPressed: () => launchUrl(Uri.parse(AppConfig.privacyUrl)),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('View current privacy policy')),
+          if (type == InfoType.terms && AppConfig.termsUrl.isNotEmpty)
+            TextButton.icon(
+                onPressed: () => launchUrl(Uri.parse(AppConfig.termsUrl)),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('View current terms')),
           const Text(
             'Last updated: August 2026',
             style: TextStyle(color: AppColors.muted, fontSize: 11),

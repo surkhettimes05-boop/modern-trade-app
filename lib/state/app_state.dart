@@ -1,10 +1,13 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api_client.dart';
 import '../models/models.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/cart_controller.dart';
+import '../repositories/catalog_repository.dart';
+import '../repositories/checkout_repository.dart';
+import '../repositories/customer_repository.dart';
 
 const _fallbackProducts = <Product>[
   Product(
@@ -116,20 +119,30 @@ class AppState extends ChangeNotifier {
                 'API_BASE_URL',
                 defaultValue: 'https://storesync-backend-dg8z.onrender.com',
               ),
-            );
+            ) {
+    authRepository = AuthRepository(this.api);
+    catalogRepository = CatalogRepository(this.api);
+    checkoutRepository = CheckoutRepository(this.api);
+    customerRepository = CustomerRepository(this.api);
+    this.api.onSessionExpired = _onSessionExpired;
+  }
 
   final ApiClient api;
+  late final AuthRepository authRepository;
+  late final CatalogRepository catalogRepository;
+  late final CheckoutRepository checkoutRepository;
+  late final CustomerRepository customerRepository;
+  final CartController cartController = CartController();
   List<Product> products = const [];
   List<ProductCategory> categories = const [];
   List<StoreLocation> stores = const [];
-  final Map<String, int> _cartQuantities = {};
   StoreLocation? selectedStore;
   Customer? customer;
   bool loading = true;
   bool usingFallbackCatalog = false;
   String? error;
 
-  List<CartLine> get cart => _cartQuantities.entries
+  List<CartLine> get cart => cartController.quantities.entries
       .map((entry) {
         final product =
             products.where((item) => item.id == entry.key).firstOrNull;
@@ -140,12 +153,11 @@ class AppState extends ChangeNotifier {
       .whereType<CartLine>()
       .toList(growable: false);
 
-  int get cartCount =>
-      _cartQuantities.values.fold(0, (sum, quantity) => sum + quantity);
-  double get cartSubtotal => cart.fold(
-        0,
-        (sum, line) => sum + line.product.price * line.quantity,
-      );
+  int get cartCount => cartController.quantities.values
+      .fold(0, (sum, quantity) => sum + quantity);
+  int get cartSubtotalMinor =>
+      cart.fold(0, (sum, line) => sum + line.totalMinor);
+  double get cartSubtotal => cartSubtotalMinor / 100;
   bool get isSignedIn => customer != null;
 
   Future<void> initialize() async {
@@ -153,27 +165,16 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     try {
       await api.restoreSession();
-      final prefs = await SharedPreferences.getInstance();
-      final savedCart = prefs.getString('cart_v1');
-      if (savedCart != null) {
-        final decoded = jsonDecode(savedCart);
-        if (decoded is Map) {
-          for (final entry in decoded.entries) {
-            final quantity = int.tryParse(entry.value.toString());
-            if (quantity != null && quantity > 0) {
-              _cartQuantities[entry.key.toString()] = quantity;
-            }
-          }
-        }
-      }
       await loadCatalog();
+      await cartController.restore(products);
+      final prefs = await SharedPreferences.getInstance();
       final savedStore = prefs.getString('selected_store');
       selectedStore =
           stores.where((store) => store.id == savedStore).firstOrNull ??
               stores.firstOrNull;
       if (api.hasSession) await validateSession();
     } catch (exception) {
-      error = exception.toString();
+      error = userMessage(exception);
     } finally {
       loading = false;
       notifyListeners();
@@ -183,17 +184,10 @@ class AppState extends ChangeNotifier {
   Future<void> loadCatalog() async {
     error = null;
     try {
-      final responses = await Future.wait([
-        api.get('/api/public/products'),
-        api.get('/api/public/categories'),
-        api.get('/api/public/stores'),
-      ]);
-      products = _mapList(responses[0], Product.fromJson)
-          .where((product) => product.price > 0)
-          .toList(growable: false);
-      categories = _mapList(responses[1], ProductCategory.fromJson);
-      stores = _mapList(responses[2], StoreLocation.fromJson);
-      if (products.isEmpty) throw const ApiException('Catalog is empty');
+      final catalog = await catalogRepository.load();
+      products = catalog.products;
+      categories = catalog.categories;
+      stores = catalog.stores;
       usingFallbackCatalog = false;
     } catch (exception) {
       products = _fallbackProducts;
@@ -209,18 +203,6 @@ class AppState extends ChangeNotifier {
       error = 'Live catalog unavailable. Showing the opening range.';
     }
     notifyListeners();
-  }
-
-  List<T> _mapList<T>(dynamic value, T Function(Map<String, dynamic>) mapper) {
-    final rows = value is List
-        ? value
-        : value is Map && value['data'] is List
-            ? value['data'] as List
-            : const [];
-    return rows
-        .whereType<Map>()
-        .map((row) => mapper(Map<String, dynamic>.from(row)))
-        .toList(growable: false);
   }
 
   List<Product> search(String query, {String? categoryId}) {
@@ -245,66 +227,31 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> addToCart(Product product, {int quantity = 1}) async {
-    _cartQuantities.update(
-      product.id,
-      (current) => current + quantity,
-      ifAbsent: () => quantity,
-    );
-    await _saveCart();
+    await cartController.add(product, quantity: quantity);
     notifyListeners();
   }
 
   Future<void> setCartQuantity(Product product, int quantity) async {
-    if (quantity <= 0) {
-      _cartQuantities.remove(product.id);
-    } else {
-      _cartQuantities[product.id] = quantity;
-    }
-    await _saveCart();
+    await cartController.set(product, quantity);
     notifyListeners();
   }
 
   Future<void> clearCart() async {
-    _cartQuantities.clear();
-    await _saveCart();
+    await cartController.clear();
+    await checkoutRepository.abandonAttempt();
     notifyListeners();
   }
 
-  Future<void> _saveCart() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cart_v1', jsonEncode(_cartQuantities));
-  }
-
-  Future<String?> requestOtp(String phone) async {
-    final response = await api.post(
-      '/api/auth/otp/request',
-      body: {'phone': phone, 'purpose': 'LOGIN'},
-    );
-    return response is Map ? response['otp']?.toString() : null;
-  }
+  Future<void> requestOtp(String phone) => authRepository.requestOtp(phone);
 
   Future<void> verifyOtp(String phone, String code) async {
-    final response = await api.post(
-      '/api/auth/otp/verify',
-      body: {'phone': phone, 'otp_code': code, 'purpose': 'LOGIN'},
-    );
-    if (response is! Map || response['customer'] is! Map) {
-      throw const ApiException('The login response did not contain a customer');
-    }
-    customer = Customer.fromJson(
-      Map<String, dynamic>.from(response['customer'] as Map),
-    );
+    customer = await authRepository.verifyOtp(phone, code);
     notifyListeners();
   }
 
   Future<void> validateSession() async {
     try {
-      final response = await api.get('/api/auth/session/validate');
-      if (response is Map && response['customer'] is Map) {
-        customer = Customer.fromJson(
-          Map<String, dynamic>.from(response['customer'] as Map),
-        );
-      }
+      customer = await authRepository.validateSession();
     } on ApiException catch (exception) {
       if (exception.statusCode == 401) await api.clearSession();
       customer = null;
@@ -314,18 +261,14 @@ class AppState extends ChangeNotifier {
 
   Future<void> logout() async {
     try {
-      await api.post('/api/auth/logout');
+      await authRepository.logout();
     } finally {
-      await api.clearSession();
       customer = null;
       notifyListeners();
     }
   }
 
-  Future<List<CustomerOrder>> loadOrders() async {
-    final response = await api.get('/api/customer/orders');
-    return _mapList(response, CustomerOrder.fromJson);
-  }
+  Future<List<CustomerOrder>> loadOrders() => customerRepository.loadOrders();
 
   Future<CustomerOrder> checkout({
     required String deliveryType,
@@ -337,45 +280,36 @@ class AppState extends ChangeNotifier {
     required String postalCode,
     String? notes,
   }) async {
+    if (customer == null) {
+      throw const ApiException('Please sign in to checkout.',
+          kind: ApiErrorKind.authentication);
+    }
     final store = selectedStore;
     if (store == null || store.id == 'offline-store') {
       throw const ApiException('Choose a live store before checkout');
     }
     if (cart.isEmpty) throw const ApiException('Your cart is empty');
-    final cartResponse = await api.post(
-      '/api/shopping-cart',
-      body: {'store_id': store.id},
+    final order = await checkoutRepository.checkout(
+      store: store,
+      customer: customer!,
+      lines: cart,
+      details: CheckoutDetails(
+          deliveryType: deliveryType,
+          name: name,
+          phone: phone,
+          address: address,
+          city: city,
+          state: state,
+          postalCode: postalCode,
+          notes: notes),
     );
-    final cartId = cartResponse is Map ? cartResponse['id']?.toString() : null;
-    if (cartId == null) throw const ApiException('Could not create cart');
-    for (final line in cart) {
-      await api.post(
-        '/api/shopping-cart/$cartId/items',
-        body: {'product_id': line.product.id, 'quantity': line.quantity},
-      );
-    }
-    final result = await api.post(
-      '/api/checkout/cod',
-      body: {
-        'cart_id': cartId,
-        'store_id': store.id,
-        'idempotency_key':
-            'mobile-${DateTime.now().microsecondsSinceEpoch}-${customer!.id}',
-        'delivery_type': deliveryType,
-        'shipping_name': name,
-        'shipping_phone': phone,
-        'shipping_address': address,
-        'shipping_city': city,
-        'shipping_state': state,
-        'shipping_postal_code': postalCode,
-        'shipping_country': 'NP',
-        if (notes?.trim().isNotEmpty == true) 'notes': notes!.trim(),
-      },
-    );
-    if (result is! Map) throw const ApiException('Invalid order response');
-    final order = CustomerOrder.fromJson(Map<String, dynamic>.from(result));
     await clearCart();
     return order;
+  }
+
+  Future<void> _onSessionExpired() async {
+    customer = null;
+    notifyListeners();
   }
 
   @override

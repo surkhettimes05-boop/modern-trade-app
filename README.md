@@ -18,16 +18,16 @@ The admin, staff, POS and operations products remain web-only.
 
 ## API configuration
 
-Builds default to the deployed StoreSync backend:
+The committed default points to the deployed Render backend:
 
 ```text
 https://storesync-backend-dg8z.onrender.com
 ```
 
-Override it at run or build time:
+Override it for local development at run or build time:
 
 ```powershell
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3001
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:3001
 flutter build apk --release --dart-define=API_BASE_URL=https://api.example.com
 ```
 
@@ -72,10 +72,22 @@ sent with protected API requests. No backend or website changes are required.
 2. Set final Android application ID and Apple bundle ID if they differ from
    `com.novamart.modern_trade_flutter`.
 3. Configure the production HTTPS API URL with `--dart-define`.
-4. Replace the placeholder WhatsApp support number in `info_screen.dart`.
+4. Provide support and policy values through Dart defines (contact is hidden if unset).
 5. Confirm store listing privacy disclosures and screenshots.
 6. Run `flutter analyze`, `flutter test`, and physical-device checkout tests.
 7. Build a signed Android App Bundle and iOS archive.
+
+### Required release configuration
+
+Codemagic expects a secured `nova_mart_android_signing` variable group containing
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and
+`ANDROID_KEY_PASSWORD`. Set `API_BASE_URL` to the production HTTPS API. Optional
+`SUPPORT_PHONE`, `PRIVACY_POLICY_URL`, and `TERMS_URL` values control the support
+and external policy actions. No signing value belongs in source control.
+
+Prices are parsed from numeric or string API values and totals use integer paisa
+internally. This supports decimal prices while avoiding floating-point total drift.
+The API remains authoritative for price, stock, and quantity validation.
 
 ## Important pilot constraints
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../core/api_client.dart';
 import '../main.dart';
 import '../widgets/common.dart';
 
@@ -33,7 +34,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
               return EmptyState(
                 icon: Icons.stars_outlined,
                 title: 'Rewards are not available yet',
-                message: snapshot.error.toString(),
+                message: userMessage(snapshot.error!),
               );
             }
             final data = snapshot.data is Map ? snapshot.data as Map : const {};

@@ -18,7 +18,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _otp = TextEditingController();
   bool _otpSent = false;
   bool _busy = false;
-  String? _developmentOtp;
   String? _error;
 
   @override
@@ -39,8 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!RegExp(r'^(\+977)?9[6-9]\d{8}$').hasMatch(_phone.text.trim())) {
           throw const ApiException('Enter a valid Nepal mobile number');
         }
-        _developmentOtp = await state.requestOtp(_phone.text.trim());
-        if (_developmentOtp != null) _otp.text = _developmentOtp!;
+        await state.requestOtp(_phone.text.trim());
         setState(() => _otpSent = true);
       } else {
         if (_otp.text.trim().length != 6) {
@@ -50,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) Navigator.pop(context, true);
       }
     } catch (exception) {
-      setState(() => _error = exception.toString());
+      setState(() => _error = userMessage(exception));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -118,21 +116,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: const InputDecoration(
                             labelText: 'One-time password'),
                       ),
-                    if (_developmentOtp != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE7F2ED),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          'Development OTP: $_developmentOtp',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                    ],
                     if (_error != null) ...[
                       const SizedBox(height: 12),
                       Text(
@@ -164,7 +147,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             : () => setState(() {
                                   _otpSent = false;
                                   _otp.clear();
-                                  _developmentOtp = null;
                                   _error = null;
                                 }),
                         child: const Text('Change phone number'),

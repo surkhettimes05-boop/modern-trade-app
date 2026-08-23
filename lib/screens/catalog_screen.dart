@@ -7,13 +7,16 @@ class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
 
   @override
-  State<CatalogScreen> createState() => _CatalogScreenState();
+  State<CatalogScreen> createState() => CatalogScreenState();
 }
 
-class _CatalogScreenState extends State<CatalogScreen> {
+class CatalogScreenState extends State<CatalogScreen> {
   final _search = TextEditingController();
   String? _category;
   var _sort = 'featured';
+
+  void selectCategory(String? categoryId) =>
+      setState(() => _category = categoryId);
 
   @override
   void dispose() {

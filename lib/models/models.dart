@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 double _number(Object? value) => value is num
     ? value.toDouble()
     : double.tryParse(value?.toString() ?? '') ?? 0;
@@ -38,7 +40,12 @@ class Product {
   final String availability;
   final String? unit;
 
-  bool get isAvailable => !availability.toUpperCase().contains('OUT');
+  /// Unknown or future backend states must fail closed.
+  bool get isAvailable =>
+      const {'AVAILABLE'}.contains(availability.trim().toUpperCase());
+  int get priceMinor => (price * 100).round();
+  int? get originalPriceMinor =>
+      originalPrice == null ? null : (originalPrice! * 100).round();
   int get discountPercent => originalPrice == null || originalPrice! <= price
       ? 0
       : ((1 - price / originalPrice!) * 100).round();
@@ -127,6 +134,7 @@ class CartLine {
   const CartLine({required this.product, required this.quantity});
   final Product product;
   final int quantity;
+  int get totalMinor => product.priceMinor * quantity;
 
   CartLine copyWith({int? quantity}) =>
       CartLine(product: product, quantity: quantity ?? this.quantity);
@@ -173,6 +181,7 @@ class CustomerOrder {
   final String? orderNumber;
   final String status;
   final double total;
+  int get totalMinor => (total * 100).round();
   final DateTime? orderDate;
   final String? deliveryType;
 
@@ -188,13 +197,8 @@ class CustomerOrder {
       );
 }
 
-String formatNpr(num value) {
-  final rounded = value.round().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < rounded.length; i++) {
-    final remaining = rounded.length - i;
-    buffer.write(rounded[i]);
-    if (remaining > 1 && (remaining - 1) % 3 == 0) buffer.write(',');
-  }
-  return 'NPR $buffer';
+String formatNpr(num value) => formatNprMinor((value * 100).round());
+
+String formatNprMinor(int minorUnits) {
+  return 'NPR ${NumberFormat('#,##0.##', 'en_US').format(minorUnits / 100)}';
 }
