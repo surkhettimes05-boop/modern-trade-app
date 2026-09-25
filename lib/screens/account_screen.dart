@@ -34,7 +34,7 @@ class AccountScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Your NOVA MART account',
+                  'Your PASALHO account',
                   style: Theme.of(context)
                       .textTheme
                       .titleLarge
@@ -83,7 +83,7 @@ class AccountScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    customer.preferredName ?? 'NOVA MART customer',
+                    customer.preferredName ?? 'PASALHO customer',
                     style: Theme.of(context)
                         .textTheme
                         .titleLarge
@@ -127,7 +127,7 @@ class AccountScreen extends StatelessWidget {
               const Divider(height: 1, indent: 58),
               _AccountTile(
                 icon: Icons.stars_outlined,
-                title: 'NOVA Rewards',
+                title: 'PASALHO Rewards',
                 subtitle: 'Balance and points history',
                 onTap: () => Navigator.push<void>(
                   context,

@@ -48,7 +48,7 @@ class CartScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Expanded(child: Text('Subtotal')),
+                    const Expanded(child: Text('Estimated subtotal')),
                     Text(
                       formatNpr(state.cartSubtotal),
                       style: const TextStyle(
@@ -61,7 +61,7 @@ class CartScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Delivery charges are confirmed at checkout',
+                        'Final price and availability are confirmed by PASALHO when you order',
                         style: TextStyle(color: AppColors.muted, fontSize: 11),
                       ),
                     ),

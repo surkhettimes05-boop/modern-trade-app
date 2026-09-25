@@ -32,7 +32,7 @@ class HomeScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 30, 16, 14),
               child: SectionHeading(
-                eyebrow: 'StoreSync opening range',
+                eyebrow: 'Browse PASALHO',
                 title: 'Shop by category',
                 action: TextButton(
                     onPressed: () => onShop(null),
@@ -210,7 +210,7 @@ class _Hero extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
-                        'THIS WEEK AT NOVA MART',
+                        'SHOP PASALHO',
                         style: TextStyle(
                           fontSize: 10,
                           letterSpacing: 1,
@@ -220,7 +220,7 @@ class _Hero extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      'Big savings for\neveryday living.',
+                      'Everyday shopping,\nmade simple.',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 40,
@@ -231,7 +231,7 @@ class _Hero extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Groceries, home essentials and more — quality products at prices made for everyday life.',
+                      'Browse products, check store availability and order with cash on delivery.',
                       style: TextStyle(color: Color(0xFFEDF5F0), height: 1.5),
                     ),
                     const SizedBox(height: 24),
@@ -239,7 +239,7 @@ class _Hero extends StatelessWidget {
                       onPressed: onShop,
                       iconAlignment: IconAlignment.end,
                       icon: const Icon(Icons.arrow_forward),
-                      label: const Text("Shop today's deals"),
+                      label: const Text('Browse products'),
                     ),
                   ],
                 ),

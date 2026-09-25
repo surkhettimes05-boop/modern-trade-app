@@ -12,13 +12,13 @@ import 'test_helpers.dart';
 const product = Product(
     id: 'p1',
     name: 'Rice',
-    brand: 'NOVA',
+    brand: 'PASALHO',
     category: 'Food',
     description: '',
     imageUrl: '',
     price: 799,
     availability: 'AVAILABLE');
-const store = StoreLocation(id: 's1', name: 'NOVA MART');
+const store = StoreLocation(id: 's1', name: 'PASALHO');
 const customer = Customer(id: 'c1');
 const details = CheckoutDetails(
     deliveryType: 'DELIVERY',
@@ -133,5 +133,39 @@ void main() {
     expect(body['delivery_type'], 'PICKUP');
     expect(body.containsKey('shipping_address'), isFalse);
     expect(body.containsKey('shipping_city'), isFalse);
+  });
+
+  test('changing order details starts a new idempotent attempt', () async {
+    final keys = <String>[];
+    final repo = CheckoutRepository(testApi((request) async {
+      if (request.url.path == '/api/shopping-cart') {
+        return jsonResponse({'id': 'cart-${keys.length + 1}'});
+      }
+      if (request.url.path.endsWith('/items')) return jsonResponse({});
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      keys.add(body['idempotency_key'].toString());
+      return jsonResponse({'id': 'order-${keys.length}'});
+    }));
+
+    await repo.checkout(
+        store: store,
+        customer: customer,
+        lines: const [CartLine(product: product, quantity: 1)],
+        details: details);
+    await repo.checkout(
+        store: store,
+        customer: customer,
+        lines: const [CartLine(product: product, quantity: 1)],
+        details: const CheckoutDetails(
+            deliveryType: 'DELIVERY',
+            name: 'Asha Changed',
+            phone: '9812345678',
+            address: 'Ward 1',
+            city: 'Kathmandu',
+            state: 'Bagmati',
+            postalCode: '44600'));
+
+    expect(keys, hasLength(2));
+    expect(keys[0], isNot(keys[1]));
   });
 }

@@ -177,6 +177,9 @@ class _AddressFormState extends State<_AddressForm> {
   final _postal = TextEditingController();
   final _phone = TextEditingController();
   final _instructions = TextEditingController();
+  final _name = TextEditingController();
+  final _city = TextEditingController();
+  final _state = TextEditingController();
   var _type = 'HOME';
   var _isDefault = false;
   var _busy = false;
@@ -190,7 +193,10 @@ class _AddressFormState extends State<_AddressForm> {
       _landmark,
       _postal,
       _phone,
-      _instructions
+      _instructions,
+      _name,
+      _city,
+      _state,
     ]) {
       controller.dispose();
     }
@@ -205,11 +211,14 @@ class _AddressFormState extends State<_AddressForm> {
     });
     try {
       await AppScope.of(context).customerRepository.createAddress({
+        'recipient_name': _name.text.trim(),
         'tole_locality': _tole.text.trim(),
         if (_street.text.trim().isNotEmpty) 'street': _street.text.trim(),
         if (_landmark.text.trim().isNotEmpty) 'landmark': _landmark.text.trim(),
         if (_postal.text.trim().isNotEmpty) 'postal_code': _postal.text.trim(),
-        if (_phone.text.trim().isNotEmpty) 'phone': _phone.text.trim(),
+        'phone': _phone.text.trim(),
+        'city': _city.text.trim(),
+        'state': _state.text.trim(),
         if (_instructions.text.trim().isNotEmpty)
           'delivery_instructions': _instructions.text.trim(),
         'address_type': _type,
@@ -254,6 +263,14 @@ class _AddressFormState extends State<_AddressForm> {
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
+                  controller: _name,
+                  validator: (value) =>
+                      value?.trim().isEmpty == true ? 'Required' : null,
+                  decoration:
+                      const InputDecoration(labelText: 'Recipient name'),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
                   controller: _tole,
                   validator: (value) =>
                       value?.trim().isEmpty == true ? 'Required' : null,
@@ -275,6 +292,30 @@ class _AddressFormState extends State<_AddressForm> {
                   children: [
                     Expanded(
                       child: TextFormField(
+                        controller: _city,
+                        validator: (value) =>
+                            value?.trim().isEmpty == true ? 'Required' : null,
+                        decoration: const InputDecoration(
+                            labelText: 'City / municipality'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _state,
+                        validator: (value) =>
+                            value?.trim().isEmpty == true ? 'Required' : null,
+                        decoration:
+                            const InputDecoration(labelText: 'Province'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
                         controller: _postal,
                         keyboardType: TextInputType.number,
                         decoration:
@@ -285,6 +326,10 @@ class _AddressFormState extends State<_AddressForm> {
                     Expanded(
                       child: TextFormField(
                         controller: _phone,
+                        validator: (value) => RegExp(r'^(\+977)?9[6-9]\d{8}$')
+                                .hasMatch(value?.trim() ?? '')
+                            ? null
+                            : 'Valid Nepal mobile required',
                         keyboardType: TextInputType.phone,
                         decoration: const InputDecoration(labelText: 'Phone'),
                       ),

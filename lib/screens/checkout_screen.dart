@@ -4,6 +4,7 @@ import '../core/app_theme.dart';
 import '../core/api_client.dart';
 import '../main.dart';
 import '../models/models.dart';
+import '../state/app_state.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -24,6 +25,56 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _deliveryType = 'DELIVERY';
   bool _busy = false;
   String? _error;
+  Future<List<Map<String, dynamic>>>? _savedAddresses;
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    final state = AppScope.of(context);
+    _name.text = state.customer?.preferredName ?? '';
+    _savedAddresses = _loadAddresses(state);
+  }
+
+  Future<List<Map<String, dynamic>>> _loadAddresses(AppState state) async {
+    final response =
+        await state.customerRepository.loadAddresses(state.customer!.id);
+    final rows = response is List
+        ? response
+        : response is Map && response['data'] is List
+            ? response['data'] as List
+            : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList(growable: false);
+  }
+
+  void _useAddress(Map<String, dynamic> address) {
+    String value(String key) => address[key]?.toString().trim() ?? '';
+    final streetAddress = [
+      value('house_number'),
+      value('street'),
+      value('tole_locality'),
+      value('landmark'),
+    ].where((part) => part.isNotEmpty).join(', ');
+    setState(() {
+      final savedName = value('recipient_name');
+      final savedPhone = value('phone');
+      if (savedName.isNotEmpty) _name.text = savedName;
+      if (savedPhone.isNotEmpty) _phone.text = savedPhone;
+      _address.text = streetAddress;
+      _city.text =
+          value('city').isNotEmpty ? value('city') : value('municipality');
+      _state.text =
+          value('state').isNotEmpty ? value('state') : value('province');
+      _postalCode.text = value('postal_code');
+      final instructions = value('delivery_instructions');
+      if (instructions.isNotEmpty) _notes.text = instructions;
+    });
+  }
 
   @override
   void dispose() {
@@ -45,6 +96,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       value?.trim().isEmpty == true ? 'Required' : null;
 
   Future<void> _placeOrder() async {
+    if (_busy) return;
     if (!_form.currentState!.validate()) return;
     final state = AppScope.of(context);
     setState(() {
@@ -71,7 +123,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const Icon(Icons.check_circle, color: AppColors.brand, size: 52),
           title: const Text('Order confirmed'),
           content: Text(
-            'Your COD order ${order.orderNumber ?? order.id} has been received.',
+            'Your COD order ${order.orderNumber ?? order.id} has been received.\n\n'
+            'Server total: ${formatNpr(order.total)}\n'
+            'Payment: Cash on delivery\n'
+            'Fulfilment: ${order.deliveryType ?? _deliveryType}\n'
+            'Status: ${order.status.replaceAll('_', ' ')}',
             textAlign: TextAlign.center,
           ),
           actionsAlignment: MainAxisAlignment.center,
@@ -135,6 +191,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   subtitle:
                       Text(state.selectedStore?.address ?? 'Pickup store'),
                 ),
+              ),
+            ],
+            if (_deliveryType == 'DELIVERY' && _savedAddresses != null) ...[
+              const SizedBox(height: 16),
+              FutureBuilder<List<Map<String, dynamic>>>(
+                future: _savedAddresses,
+                builder: (context, snapshot) {
+                  final addresses = snapshot.data ?? const [];
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const LinearProgressIndicator();
+                  }
+                  if (addresses.isEmpty) return const SizedBox.shrink();
+                  return Card(
+                    child: Column(
+                      children: [
+                        const ListTile(
+                          leading: Icon(Icons.location_on_outlined,
+                              color: AppColors.brand),
+                          title: Text('Use a saved address',
+                              style: TextStyle(fontWeight: FontWeight.w900)),
+                        ),
+                        ...addresses.map((address) => ListTile(
+                              title: Text(address['address_type']?.toString() ??
+                                  'Saved address'),
+                              subtitle: Text([
+                                address['street'],
+                                address['tole_locality'],
+                                address['city'] ?? address['municipality'],
+                              ]
+                                  .where((part) =>
+                                      part?.toString().trim().isNotEmpty ==
+                                      true)
+                                  .join(', ')),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => _useAddress(address),
+                            )),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
             const SizedBox(height: 24),
@@ -230,7 +326,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     const Divider(height: 28),
                     Row(
                       children: [
-                        const Expanded(child: Text('Order subtotal')),
+                        const Expanded(child: Text('Estimated subtotal')),
                         Text(formatNpr(state.cartSubtotal),
                             style:
                                 const TextStyle(fontWeight: FontWeight.w900)),

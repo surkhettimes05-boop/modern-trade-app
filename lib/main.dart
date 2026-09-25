@@ -10,18 +10,18 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final state = AppState();
   unawaited(state.initialize());
-  runApp(NovaMartApp(state: state));
+  runApp(PasalhoApp(state: state));
 }
 
-class NovaMartApp extends StatelessWidget {
-  const NovaMartApp({super.key, required this.state});
+class PasalhoApp extends StatelessWidget {
+  const PasalhoApp({super.key, required this.state});
   final AppState state;
 
   @override
   Widget build(BuildContext context) => AppScope(
         notifier: state,
         child: MaterialApp(
-          title: 'NOVA MART',
+          title: 'PASALHO',
           debugShowCheckedModeBanner: false,
           theme: buildAppTheme(),
           home: const AppShell(),

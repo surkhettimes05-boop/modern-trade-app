@@ -12,7 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 const widgetProduct = Product(
     id: 'p',
     name: 'Rice',
-    brand: 'NOVA',
+    brand: 'PASALHO',
     category: 'Food',
     description: '',
     imageUrl: '',
@@ -41,7 +41,7 @@ void main() {
     const blocked = Product(
         id: 'blocked',
         name: 'Blocked item',
-        brand: 'NOVA',
+        brand: 'PASALHO',
         category: 'Food',
         description: '',
         imageUrl: '',
@@ -79,7 +79,7 @@ void main() {
     final state = AppState()
       ..products = const [widgetProduct]
       ..selectedStore = const StoreLocation(
-          id: 'store', name: 'NOVA MART Thamel', address: 'Thamel')
+          id: 'store', name: 'PASALHO Thamel', address: 'Thamel')
       ..customer = const Customer(id: 'customer');
     await state.addToCart(widgetProduct);
     await tester.pumpWidget(scoped(state, const CheckoutScreen()));
@@ -87,7 +87,7 @@ void main() {
     await tester.tap(find.text('Pickup'));
     await tester.pump();
     expect(find.text('Street, ward and locality'), findsNothing);
-    expect(find.text('NOVA MART Thamel'), findsOneWidget);
+    expect(find.text('PASALHO Thamel'), findsOneWidget);
     expect(find.text('City / municipality'), findsNothing);
   });
 }

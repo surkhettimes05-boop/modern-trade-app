@@ -135,7 +135,7 @@ class ApiClient {
       throw ApiException('You appear to be offline. Check your connection.',
           kind: ApiErrorKind.network, diagnostic: '$error');
     } on http.ClientException catch (error) {
-      throw ApiException('Could not connect to NOVA MART. Please try again.',
+      throw ApiException('Could not connect to PASALHO. Please try again.',
           kind: ApiErrorKind.network, diagnostic: '$error');
     }
   }
@@ -198,7 +198,7 @@ class ApiClient {
         ApiErrorKind.rateLimit =>
           'Too many requests. Please wait and try again.',
         ApiErrorKind.server =>
-          'NOVA MART is temporarily unavailable. Please try again shortly.',
+          'PASALHO is temporarily unavailable. Please try again shortly.',
         _ => 'We could not complete that request. Please try again.',
       };
       if (kDebugMode && diagnostic != null) {

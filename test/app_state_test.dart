@@ -9,7 +9,7 @@ import 'test_helpers.dart';
 const stateProduct = Product(
     id: 'p',
     name: 'Rice',
-    brand: 'NOVA',
+    brand: 'PASALHO',
     category: 'Food',
     description: '',
     imageUrl: '',
@@ -66,7 +66,8 @@ void main() {
     expect(state.cart, isEmpty);
   });
 
-  test('initialize restores secure session and falls back on invalid catalog',
+  test(
+      'initialize restores secure session and never falls back on invalid catalog',
       () async {
     final store = MemorySessionStore()..values['customer_session'] = 'session';
     final api = testApi((request) async {
@@ -80,8 +81,8 @@ void main() {
     final state = AppState(api: api);
     await state.initialize();
     expect(state.customer?.id, 'restored');
-    expect(state.usingFallbackCatalog, isTrue);
-    expect(state.products, isNotEmpty);
+    expect(state.products, isEmpty);
+    expect(state.error, isNotNull);
   });
 }
 

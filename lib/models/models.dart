@@ -58,7 +58,7 @@ class Product {
       id: _text(json['id']),
       sku: json['sku']?.toString(),
       name: _text(json['name'], 'Product'),
-      brand: _text(json['brand'], 'NOVA MART'),
+      brand: _text(json['brand']),
       category: _text(json['category_name'], 'Everyday essentials'),
       categoryId: json['category_id']?.toString(),
       description: _text(json['description']),
@@ -122,7 +122,7 @@ class StoreLocation {
 
   factory StoreLocation.fromJson(Map<String, dynamic> json) => StoreLocation(
         id: _text(json['id']),
-        name: _text(json['name'], 'NOVA MART'),
+        name: _text(json['name'], 'PASALHO'),
         address: json['address']?.toString(),
         phone: json['phone']?.toString(),
         hours: json['hours']?.toString(),

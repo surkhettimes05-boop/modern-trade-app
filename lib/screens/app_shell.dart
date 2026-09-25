@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_theme.dart';
 import '../main.dart';
 import '../widgets/common.dart';
 import 'account_screen.dart';
@@ -39,7 +38,7 @@ class _AppShellState extends State<AppShell> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              NovaLogo(),
+              PasalhoLogo(),
               SizedBox(height: 28),
               CircularProgressIndicator(),
             ],
@@ -47,29 +46,41 @@ class _AppShellState extends State<AppShell> {
         ),
       );
     }
+    if (state.catalogLoading && state.products.isEmpty) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PasalhoLogo(),
+              SizedBox(height: 28),
+              CircularProgressIndicator(),
+              SizedBox(height: 14),
+              Text('Loading products for your store…'),
+            ],
+          ),
+        ),
+      );
+    }
+    if (state.error != null && state.products.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const PasalhoLogo(compact: true)),
+        body: EmptyState(
+          icon: Icons.cloud_off_outlined,
+          title: 'Products are unavailable',
+          message: state.error!,
+          action: ElevatedButton.icon(
+            onPressed: state.catalogLoading ? null : state.loadCatalog,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try again'),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
-        title: const NovaLogo(compact: true),
+        title: const PasalhoLogo(compact: true),
         actions: const [StoreSelector(), SizedBox(width: 6)],
-        bottom: state.usingFallbackCatalog
-            ? const PreferredSize(
-                preferredSize: Size.fromHeight(30),
-                child: ColoredBox(
-                  color: AppColors.warm,
-                  child: SizedBox(
-                    height: 30,
-                    width: double.infinity,
-                    child: Center(
-                      child: Text(
-                        'Offline preview · connect the StoreSync API for live stock',
-                        style: TextStyle(
-                            fontSize: 11, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ),
-              )
-            : null,
       ),
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(

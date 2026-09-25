@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:modern_trade_flutter/core/api_client.dart';
+import 'package:modern_trade_flutter/models/models.dart';
 import 'package:modern_trade_flutter/repositories/catalog_repository.dart';
 
 import 'test_helpers.dart';
@@ -7,8 +8,10 @@ import 'test_helpers.dart';
 void main() {
   test('maps catalog responses and keeps unavailable products visible',
       () async {
+    Uri? productRequest;
     final repo = CatalogRepository(testApi((request) async {
       if (request.url.path.endsWith('products')) {
+        productRequest = request.url;
         return jsonResponse({
           'data': [
             {
@@ -29,17 +32,20 @@ void main() {
         {'id': 's', 'name': 'Store'}
       ]);
     }));
-    final result = await repo.load();
+    final stores = await repo.loadStores();
+    final result = await repo.loadForStore('s', stores);
     expect(result.products.single.priceMinor, 1250);
     expect(result.products.single.isAvailable, isFalse);
     expect(result.categories.single.id, 'c');
+    expect(productRequest?.queryParameters['store_id'], 's');
   });
 
-  test('empty or invalid product response triggers fallback signal', () async {
+  test('empty or invalid product response reports an error without fixtures',
+      () async {
     final repo = CatalogRepository(
         testApi((_) async => jsonResponse({'unexpected': true})));
     await expectLater(
-        repo.load(),
+        repo.loadForStore('s', const [StoreLocation(id: 's', name: 'PASALHO')]),
         throwsA(isA<ApiException>()
             .having((e) => e.kind, 'kind', ApiErrorKind.invalidResponse)));
   });

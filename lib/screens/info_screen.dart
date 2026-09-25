@@ -15,7 +15,7 @@ class InfoScreen extends StatelessWidget {
     final (title, intro, sections) = switch (type) {
       InfoType.help => (
           'Help and FAQ',
-          'Quick answers for shopping with NOVA MART.',
+          'Quick answers for shopping with PASALHO.',
           const [
             (
               'How do I place an order?',
@@ -37,7 +37,7 @@ class InfoScreen extends StatelessWidget {
         ),
       InfoType.privacy => (
           'Privacy policy',
-          'How StoreSync handles customer information in the NOVA MART app.',
+          'How PASALHO handles customer information in the app.',
           const [
             (
               'Information we use',

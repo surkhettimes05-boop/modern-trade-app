@@ -52,7 +52,7 @@ class CheckoutRepository {
             'One or more cart quantities are invalid. Please review your cart.');
       }
     }
-    final fingerprint = _fingerprint(store.id, customer.id, lines);
+    final fingerprint = _fingerprint(store.id, customer.id, lines, details);
     final prefs = await SharedPreferences.getInstance();
     var attempt = _Attempt.read(prefs.getString(_attemptKey));
     if (attempt == null || attempt.fingerprint != fingerprint) {
@@ -122,12 +122,25 @@ class CheckoutRepository {
       prefs.setString(_attemptKey, jsonEncode(attempt.toJson()));
   String _newKey(String customerId) =>
       'mobile-$customerId-${DateTime.now().microsecondsSinceEpoch}-${List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join()}';
-  String _fingerprint(String storeId, String customerId, List<CartLine> lines) {
+  String _fingerprint(String storeId, String customerId, List<CartLine> lines,
+      CheckoutDetails details) {
     final entries = lines
         .map((line) => '${line.product.id}:${line.quantity}')
         .toList()
       ..sort();
-    return '$storeId|$customerId|${entries.join(',')}';
+    return [
+      storeId,
+      customerId,
+      entries.join(','),
+      details.deliveryType,
+      details.name.trim(),
+      details.phone.trim(),
+      details.address.trim(),
+      details.city.trim(),
+      details.state.trim(),
+      details.postalCode.trim(),
+      details.notes?.trim() ?? '',
+    ].join('|');
   }
 }
 

@@ -126,7 +126,8 @@ class _OrderCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      order.orderNumber ?? 'Order ${order.id.substring(0, 8)}',
+                      order.orderNumber ??
+                          'Order ${order.id.length > 8 ? order.id.substring(0, 8) : order.id}',
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),

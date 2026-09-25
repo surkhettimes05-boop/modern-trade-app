@@ -19,32 +19,36 @@ workflows:
       - name: Build downloadable APK
         script: |
           flutter build apk --debug \
-            --dart-define=API_BASE_URL="${API_BASE_URL:-https://storesync-backend-dg8z.onrender.com}"
+            --dart-define=APP_ENV=development \
+            --dart-define=API_BASE_URL="${API_BASE_URL:-http://10.0.2.2:3001}"
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
       - flutter_drive.log
 
   android-release:
-    name: NOVA MART Android release
+    name: PASALHO Android release
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       flutter: stable
       java: 17
       groups:
-        - nova_mart_android_signing
+        - pasalho_android_signing
       vars:
-        API_BASE_URL: https://storesync-backend-dg8z.onrender.com
-        ANDROID_KEYSTORE_PATH: /tmp/nova-mart-release.jks
+        ANDROID_KEYSTORE_PATH: /tmp/pasalho-release.jks
     scripts:
       - name: Validate release configuration
         script: |
-          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+          for name in API_BASE_URL ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
             if [ -z "$(printenv "$name")" ]; then
               echo "Missing required Codemagic secret: $name"
               exit 1
             fi
           done
+          case "$API_BASE_URL" in
+            https://*) ;;
+            *) echo "API_BASE_URL must be an HTTPS URL"; exit 1 ;;
+          esac
       - name: Restore signing keystore
         script: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
       - name: Configure Android SDK
@@ -58,12 +62,13 @@ workflows:
         script: flutter analyze
       - name: Run tests
         script: flutter test
-      - name: Build signed app bundle
+      - name: Build signed release APK
         script: |
-          flutter build appbundle --release \
+          flutter build apk --release \
+            --dart-define=APP_ENV=production \
             --dart-define=API_BASE_URL="$API_BASE_URL" \
             --dart-define=SUPPORT_PHONE="$SUPPORT_PHONE" \
             --dart-define=PRIVACY_POLICY_URL="$PRIVACY_POLICY_URL" \
             --dart-define=TERMS_URL="$TERMS_URL"
     artifacts:
-      - build/app/outputs/bundle/release/app-release.aab
+      - build/app/outputs/flutter-apk/app-release.apk

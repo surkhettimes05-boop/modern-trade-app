@@ -38,7 +38,8 @@ class _ProductScreenState extends State<ProductScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  product.brand.toUpperCase(),
+                  (product.brand.isEmpty ? product.category : product.brand)
+                      .toUpperCase(),
                   style: const TextStyle(
                     color: AppColors.brand,
                     letterSpacing: 1.2,
@@ -109,7 +110,7 @@ class _ProductScreenState extends State<ProductScreen> {
                 const SizedBox(height: 8),
                 Text(
                   product.description.isEmpty
-                      ? 'A quality everyday product selected for NOVA MART customers.'
+                      ? 'Product details have not been provided yet.'
                       : product.description,
                   style: const TextStyle(color: AppColors.muted, height: 1.6),
                 ),

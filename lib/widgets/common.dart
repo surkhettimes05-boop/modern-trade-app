@@ -5,8 +5,8 @@ import '../main.dart';
 import '../models/models.dart';
 import '../screens/product_screen.dart';
 
-class NovaLogo extends StatelessWidget {
-  const NovaLogo({super.key, this.compact = false});
+class PasalhoLogo extends StatelessWidget {
+  const PasalhoLogo({super.key, this.compact = false});
   final bool compact;
 
   @override
@@ -22,7 +22,7 @@ class NovaLogo extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              'N',
+              'P',
               style: TextStyle(
                 color: AppColors.lime,
                 fontSize: compact ? 18 : 21,
@@ -31,28 +31,12 @@ class NovaLogo extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'NOVA',
-                style: TextStyle(
-                  height: .9,
-                  letterSpacing: -.5,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                'MART',
-                style: TextStyle(
-                  height: .9,
-                  letterSpacing: -.5,
-                  color: AppColors.brand,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
+          const Text(
+            'PASALHO',
+            style: TextStyle(
+              letterSpacing: -.5,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       );
@@ -244,7 +228,8 @@ class ProductCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product.brand.toUpperCase(),
+                    (product.brand.isEmpty ? product.category : product.brand)
+                        .toUpperCase(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

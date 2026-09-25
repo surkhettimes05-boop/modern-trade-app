@@ -28,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
+    if (_busy) return;
     final state = AppScope.of(context);
     setState(() {
       _busy = true;
@@ -66,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Align(child: NovaLogo()),
+                    const Align(child: PasalhoLogo()),
                     const SizedBox(height: 34),
                     Text(
                       _otpSent ? 'Enter your code' : 'Welcome back',
