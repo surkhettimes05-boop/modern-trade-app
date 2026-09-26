@@ -20,3 +20,7 @@ macos/Flutter/ephemeral/
 
 # Local environment overrides
 *.env
+
+# Codex local caches
+.codex-gradle-cache/
+.codex-temp/
