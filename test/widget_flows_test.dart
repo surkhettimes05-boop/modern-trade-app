@@ -77,6 +77,22 @@ void main() {
     expect(find.byType(ProductCard), findsNothing);
   });
 
+  testWidgets('missing production configuration is distinct from connectivity',
+      (tester) async {
+    final state = AppState()
+      ..loading = false
+      ..error = 'Production API configuration is missing.';
+
+    await tester.pumpWidget(scoped(state, const AppShell()));
+
+    expect(find.text('PASALHO configuration error'), findsOneWidget);
+    expect(find.text('Unable to connect to PASALHO'), findsNothing);
+    expect(
+      find.text('Production API configuration is missing.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('cart checkout requires sign in and navigates to login',
       (tester) async {
     final state = AppState()..products = const [widgetProduct];

@@ -77,6 +77,8 @@ workflows:
               echo "$name=UNSET"
             fi
           done
+          echo "API_BASE_URL length: ${#API_BASE_URL}"
+          echo "APP_ENV: production"
           echo "Release args: build apk --release --target=lib/main.dart --dart-define=APP_ENV=production --dart-define=API_BASE_URL=<redacted> --dart-define=SUPPORT_PHONE=<redacted-or-empty> --dart-define=PRIVACY_POLICY_URL=<redacted-or-empty> --dart-define=TERMS_URL=<redacted-or-empty>"
       - name: Build signed release APK
         script: |

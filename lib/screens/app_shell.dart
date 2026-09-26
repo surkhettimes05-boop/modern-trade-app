@@ -63,11 +63,20 @@ class _AppShellState extends State<AppShell> {
       );
     }
     if (state.error != null && state.products.isEmpty) {
+      final isConfigurationError = const {
+        'APP_ENV must be development or production.',
+        'This release build is missing APP_ENV=production.',
+        'Production API configuration is missing.',
+        'The API base URL is invalid.',
+        'Production API traffic must use HTTPS.',
+      }.contains(state.error);
       return Scaffold(
         appBar: AppBar(title: const PasalhoLogo(compact: true)),
         body: EmptyState(
           icon: Icons.cloud_off_outlined,
-          title: 'Unable to connect to PASALHO',
+          title: isConfigurationError
+              ? 'PASALHO configuration error'
+              : 'Unable to connect to PASALHO',
           message: state.error!,
           action: ElevatedButton.icon(
             onPressed: state.catalogLoading ? null : state.loadCatalog,

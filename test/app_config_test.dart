@@ -12,7 +12,7 @@ void main() {
     expect(
       AppConfig.validate(
         environment: 'production',
-        apiBaseUrl: 'https://api.pasalho.example',
+        apiBaseUrl: 'https://storesync-backend-dg8z.onrender.com',
         isRelease: true,
       ),
       isNull,
