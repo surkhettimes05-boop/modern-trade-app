@@ -67,12 +67,12 @@ class _AppShellState extends State<AppShell> {
         appBar: AppBar(title: const PasalhoLogo(compact: true)),
         body: EmptyState(
           icon: Icons.cloud_off_outlined,
-          title: 'Products are unavailable',
+          title: 'Unable to connect to PASALHO',
           message: state.error!,
           action: ElevatedButton.icon(
             onPressed: state.catalogLoading ? null : state.loadCatalog,
             icon: const Icon(Icons.refresh),
-            label: const Text('Try again'),
+            label: const Text('Retry'),
           ),
         ),
       );

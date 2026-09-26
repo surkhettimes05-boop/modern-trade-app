@@ -4,6 +4,7 @@ import 'package:modern_trade_flutter/main.dart';
 import 'package:modern_trade_flutter/models/models.dart';
 import 'package:modern_trade_flutter/screens/cart_screen.dart';
 import 'package:modern_trade_flutter/screens/checkout_screen.dart';
+import 'package:modern_trade_flutter/screens/app_shell.dart';
 import 'package:modern_trade_flutter/screens/login_screen.dart';
 import 'package:modern_trade_flutter/state/app_state.dart';
 import 'package:modern_trade_flutter/widgets/common.dart';
@@ -61,6 +62,19 @@ void main() {
                 find.widgetWithText(ElevatedButton, 'Unavailable'))
             .onPressed,
         isNull);
+  });
+
+  testWidgets('catalog failure shows PASALHO retry state with no products',
+      (tester) async {
+    final state = AppState()
+      ..loading = false
+      ..error = 'The request timed out. Please try again.';
+
+    await tester.pumpWidget(scoped(state, const AppShell()));
+
+    expect(find.text('Unable to connect to PASALHO'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.byType(ProductCard), findsNothing);
   });
 
   testWidgets('cart checkout requires sign in and navigates to login',

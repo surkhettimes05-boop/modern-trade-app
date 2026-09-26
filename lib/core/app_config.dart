@@ -10,16 +10,28 @@ class AppConfig {
 
   static String get apiBaseUrl => _configuredApiBaseUrl.isNotEmpty
       ? _configuredApiBaseUrl
-      : _developmentApiBaseUrl;
+      : environment == 'development'
+          ? _developmentApiBaseUrl
+          : '';
 
-  static String? configurationError() {
+  static String? configurationError() => validate(
+        environment: environment,
+        apiBaseUrl: apiBaseUrl,
+        isRelease: kReleaseMode,
+      );
+
+  static String? validate({
+    required String environment,
+    required String apiBaseUrl,
+    required bool isRelease,
+  }) {
     if (environment != 'development' && environment != 'production') {
       return 'APP_ENV must be development or production.';
     }
-    if (kReleaseMode && environment != 'production') {
+    if (isRelease && environment != 'production') {
       return 'This release build is missing APP_ENV=production.';
     }
-    if (environment == 'production' && _configuredApiBaseUrl.isEmpty) {
+    if (environment == 'production' && apiBaseUrl.isEmpty) {
       return 'Production API configuration is missing.';
     }
     final uri = Uri.tryParse(apiBaseUrl);

@@ -1,11 +1,11 @@
 {
-    "name": "NOVA MART",
-    "short_name": "NOVA MART",
+    "name": "PASALHO",
+    "short_name": "PASALHO",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "NOVA MART customer shopping app for Nepal.",
+    "description": "PASALHO customer shopping app for Nepal.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

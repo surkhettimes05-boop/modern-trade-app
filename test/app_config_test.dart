@@ -7,4 +7,37 @@ void main() {
     expect(Uri.parse(AppConfig.apiBaseUrl).host, isNotEmpty);
     expect(AppConfig.configurationError(), isNull);
   });
+
+  test('production accepts an explicit HTTPS API URL', () {
+    expect(
+      AppConfig.validate(
+        environment: 'production',
+        apiBaseUrl: 'https://api.pasalho.example',
+        isRelease: true,
+      ),
+      isNull,
+    );
+  });
+
+  test('production rejects a missing API URL', () {
+    expect(
+      AppConfig.validate(
+        environment: 'production',
+        apiBaseUrl: '',
+        isRelease: true,
+      ),
+      'Production API configuration is missing.',
+    );
+  });
+
+  test('production rejects a non-HTTPS API URL', () {
+    expect(
+      AppConfig.validate(
+        environment: 'production',
+        apiBaseUrl: 'http://api.pasalho.example',
+        isRelease: true,
+      ),
+      'Production API traffic must use HTTPS.',
+    );
+  });
 }

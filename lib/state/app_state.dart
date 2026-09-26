@@ -11,8 +11,9 @@ import '../repositories/checkout_repository.dart';
 import '../repositories/customer_repository.dart';
 
 class AppState extends ChangeNotifier {
-  AppState({ApiClient? api})
-      : _usesEnvironmentConfig = api == null,
+  AppState({ApiClient? api, String? Function()? configurationValidator})
+      : _configurationValidator = configurationValidator ??
+            (api == null ? AppConfig.configurationError : null),
         api = api ?? ApiClient(baseUrl: AppConfig.apiBaseUrl) {
     authRepository = AuthRepository(this.api);
     catalogRepository = CatalogRepository(this.api);
@@ -22,7 +23,7 @@ class AppState extends ChangeNotifier {
   }
 
   final ApiClient api;
-  final bool _usesEnvironmentConfig;
+  final String? Function()? _configurationValidator;
   late final AuthRepository authRepository;
   late final CatalogRepository catalogRepository;
   late final CheckoutRepository checkoutRepository;
@@ -59,10 +60,7 @@ class AppState extends ChangeNotifier {
     loading = true;
     notifyListeners();
     try {
-      if (_usesEnvironmentConfig) {
-        final configurationError = AppConfig.configurationError();
-        if (configurationError != null) throw ApiException(configurationError);
-      }
+      _validateConfiguration();
       await api.restoreSession();
       try {
         stores = await catalogRepository.loadStores();
@@ -102,6 +100,7 @@ class AppState extends ChangeNotifier {
     }
     notifyListeners();
     try {
+      _validateConfiguration();
       if (stores.isEmpty) stores = await catalogRepository.loadStores();
       selectedStore ??=
           stores.where((store) => !store.temporarilyClosed).firstOrNull;
@@ -123,6 +122,11 @@ class AppState extends ChangeNotifier {
       catalogLoading = false;
     }
     notifyListeners();
+  }
+
+  void _validateConfiguration() {
+    final configurationError = _configurationValidator?.call();
+    if (configurationError != null) throw ApiException(configurationError);
   }
 
   List<Product> search(String query, {String? categoryId}) {

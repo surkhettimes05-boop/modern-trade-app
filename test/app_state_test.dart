@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:modern_trade_flutter/core/api_client.dart';
+import 'package:modern_trade_flutter/core/app_config.dart';
 import 'package:modern_trade_flutter/models/models.dart';
 import 'package:modern_trade_flutter/state/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +19,83 @@ const stateProduct = Product(
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  test('production loads products only from the live API', () async {
+    final requestedPaths = <String>[];
+    final state = AppState(
+      api: testApi((request) async {
+        requestedPaths.add(request.url.path);
+        if (request.url.path == '/api/public/stores') {
+          return jsonResponse([
+            {'id': 'store', 'name': 'PASALHO'}
+          ]);
+        }
+        if (request.url.path == '/api/public/products') {
+          return jsonResponse({
+            'data': [
+              {
+                'id': 'live-product',
+                'name': 'Live product',
+                'price': 125,
+              }
+            ]
+          });
+        }
+        if (request.url.path == '/api/public/categories') {
+          return jsonResponse([
+            {'id': 'category', 'name': 'Live category'}
+          ]);
+        }
+        return jsonResponse({});
+      }),
+      configurationValidator: () => AppConfig.validate(
+        environment: 'production',
+        apiBaseUrl: 'https://api.pasalho.example',
+        isRelease: true,
+      ),
+    );
+
+    await state.initialize();
+
+    expect(state.error, isNull);
+    expect(state.products.map((product) => product.id), ['live-product']);
+    expect(requestedPaths, contains('/api/public/stores'));
+    expect(requestedPaths, contains('/api/public/products'));
+  });
+
+  test('unreachable production API exposes no fallback products', () async {
+    final state = AppState(
+      api: testApi((_) async => throw const ApiException('unreachable')),
+      configurationValidator: () => null,
+    );
+
+    await state.initialize();
+
+    expect(state.error, 'unreachable');
+    expect(state.products, isEmpty);
+    expect(state.categories, isEmpty);
+  });
+
+  test('missing production API URL fails before any request', () async {
+    var requestCount = 0;
+    final state = AppState(
+      api: testApi((_) async {
+        requestCount++;
+        return jsonResponse({});
+      }),
+      configurationValidator: () => AppConfig.validate(
+        environment: 'production',
+        apiBaseUrl: '',
+        isRelease: true,
+      ),
+    );
+
+    await state.initialize();
+
+    expect(state.error, 'Production API configuration is missing.');
+    expect(state.products, isEmpty);
+    expect(requestCount, 0);
+  });
 
   test('checkout guards signed-in, live-store, and cart requirements',
       () async {
