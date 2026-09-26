@@ -23,18 +23,18 @@ class _AddressesScreenState extends State<AddressesScreen> {
 
   Future<List<Map<String, dynamic>>> _load() async {
     final state = AppScope.of(context);
-    final response =
-        await state.customerRepository.loadAddresses(state.customer!.id);
-    if (response is! List) return const [];
-    return response
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList(growable: false);
+    return state.loadAddresses();
   }
 
   void _reload() => setState(() => _addresses = _load());
 
   Future<void> _addAddress() async {
+    if (AppScope.of(context).isDemo) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:
+              Text('Demo Build uses the included Birendranagar address.')));
+      return;
+    }
     final created = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -45,6 +45,7 @@ class _AddressesScreenState extends State<AddressesScreen> {
   }
 
   Future<void> _delete(String id) async {
+    if (AppScope.of(context).isDemo) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(

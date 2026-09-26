@@ -39,17 +39,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _loadAddresses(AppState state) async {
-    final response =
-        await state.customerRepository.loadAddresses(state.customer!.id);
-    final rows = response is List
-        ? response
-        : response is Map && response['data'] is List
-            ? response['data'] as List
-            : const [];
-    return rows
-        .whereType<Map>()
-        .map((row) => Map<String, dynamic>.from(row))
-        .toList(growable: false);
+    return state.loadAddresses();
   }
 
   void _useAddress(Map<String, dynamic> address) {
@@ -124,7 +114,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           title: const Text('Order confirmed'),
           content: Text(
             'Your COD order ${order.orderNumber ?? order.id} has been received.\n\n'
-            'Server total: ${formatNpr(order.total)}\n'
+            '${state.isDemo ? 'Demo' : 'Server'} total: ${formatNpr(order.total)}\n'
             'Payment: Cash on delivery\n'
             'Fulfilment: ${order.deliveryType ?? _deliveryType}\n'
             'Status: ${order.status.replaceAll('_', ' ')}',
@@ -336,6 +326,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
             ),
+            if (state.isDemo)
+              const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: Text('Demo order: saved locally on this device.',
+                    style: TextStyle(color: AppColors.muted)),
+              ),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(_error!, style: const TextStyle(color: AppColors.danger)),

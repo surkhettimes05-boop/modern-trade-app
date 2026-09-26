@@ -66,6 +66,8 @@ class _AppShellState extends State<AppShell> {
       final isConfigurationError = const {
         'APP_ENV must be development or production.',
         'This release build is missing APP_ENV=production.',
+        'APP_ENV must be development, demo or production.',
+        'This release build requires APP_ENV=production or APP_ENV=demo.',
         'Production API configuration is missing.',
         'The API base URL is invalid.',
         'Production API traffic must use HTTPS.',

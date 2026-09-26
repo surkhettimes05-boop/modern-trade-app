@@ -63,6 +63,52 @@ void main() {
     expect(requestedPaths, contains('/api/public/products'));
   });
 
+  test('demo initializes entirely from bundled fixtures without API calls',
+      () async {
+    var requestCount = 0;
+    final state = AppState(
+      demoMode: true,
+      api: testApi((_) async {
+        requestCount++;
+        return jsonResponse({});
+      }),
+      configurationValidator: () => AppConfig.validate(
+        environment: 'demo',
+        apiBaseUrl: '',
+        isRelease: true,
+      ),
+    );
+
+    await state.initialize();
+
+    expect(state.error, isNull);
+    expect(state.selectedStore?.name, 'PASALHO Birendranagar');
+    expect(state.products, hasLength(32));
+    expect(state.categories, hasLength(10));
+    expect(state.customer?.preferredName, 'Demo Customer');
+    expect(requestCount, 0);
+  });
+
+  test('demo checkout saves a local DEMO order without API calls', () async {
+    var requestCount = 0;
+    final state = AppState(
+      demoMode: true,
+      api: testApi((_) async {
+        requestCount++;
+        return jsonResponse({});
+      }),
+    );
+    await state.initialize();
+    await state.addToCart(state.products.first);
+
+    final order = await _checkout(state);
+
+    expect(order.orderNumber, 'DEMO-1001');
+    expect((await state.loadOrders()).single.id, 'DEMO-1001');
+    expect(state.cart, isEmpty);
+    expect(requestCount, 0);
+  });
+
   test('unreachable production API exposes no fallback products', () async {
     final state = AppState(
       api: testApi((_) async => throw const ApiException('unreachable')),

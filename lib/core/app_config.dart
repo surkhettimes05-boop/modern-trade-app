@@ -7,6 +7,7 @@ class AppConfig {
   static const _developmentApiBaseUrl = String.fromEnvironment(
       'DEVELOPMENT_API_BASE_URL',
       defaultValue: 'http://10.0.2.2:3001');
+  static bool get isDemo => environment == 'demo';
 
   static String get apiBaseUrl => _configuredApiBaseUrl.isNotEmpty
       ? _configuredApiBaseUrl
@@ -25,12 +26,13 @@ class AppConfig {
     required String apiBaseUrl,
     required bool isRelease,
   }) {
-    if (environment != 'development' && environment != 'production') {
-      return 'APP_ENV must be development or production.';
+    if (!const {'development', 'demo', 'production'}.contains(environment)) {
+      return 'APP_ENV must be development, demo or production.';
     }
-    if (isRelease && environment != 'production') {
-      return 'This release build is missing APP_ENV=production.';
+    if (isRelease && environment != 'production' && environment != 'demo') {
+      return 'This release build requires APP_ENV=production or APP_ENV=demo.';
     }
+    if (environment == 'demo') return null;
     if (environment == 'production' && apiBaseUrl.isEmpty) {
       return 'Production API configuration is missing.';
     }

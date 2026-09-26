@@ -102,6 +102,13 @@ class AccountScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
+        if (state.isDemo) ...[
+          const Chip(
+            avatar: Icon(Icons.offline_bolt_outlined, size: 18),
+            label: Text('Demo Build · Offline data'),
+          ),
+          const SizedBox(height: 14),
+        ],
         Card(
           child: Column(
             children: [

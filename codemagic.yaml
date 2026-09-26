@@ -1,4 +1,39 @@
 workflows:
+  pasalho-investor-demo:
+    name: PASALHO Investor Demo
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      java: 17
+      groups:
+        - pasalho_android_signing
+      vars:
+        ANDROID_KEYSTORE_PATH: /tmp/pasalho-demo.jks
+    scripts:
+      - name: Validate demo signing configuration
+        script: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "$(printenv "$name")" ]; then
+              echo "Missing required Codemagic signing secret: $name"
+              exit 1
+            fi
+          done
+      - name: Restore signing keystore
+        script: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+      - name: Configure Android SDK
+        script: echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Install Flutter dependencies
+        script: flutter pub get
+      - name: Analyze source
+        script: flutter analyze
+      - name: Run tests
+        script: flutter test
+      - name: Build offline investor demo APK
+        script: flutter build apk --release --target=lib/main.dart --dart-define=APP_ENV=demo
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+
   android-test-apk:
     name: Android test APK
     instance_type: mac_mini_m2

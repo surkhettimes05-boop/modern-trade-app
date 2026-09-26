@@ -19,6 +19,13 @@ void main() {
     );
   });
 
+  test('demo accepts no API URL, including in a release build', () {
+    expect(
+      AppConfig.validate(environment: 'demo', apiBaseUrl: '', isRelease: true),
+      isNull,
+    );
+  });
+
   test('production rejects a missing API URL', () {
     expect(
       AppConfig.validate(

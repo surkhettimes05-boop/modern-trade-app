@@ -25,7 +25,7 @@ class HomeScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: _Hero(onShop: () => onShop(null)),
+              child: _Hero(onShop: () => onShop(null), isDemo: state.isDemo),
             ),
           ),
           SliverToBoxAdapter(
@@ -40,6 +40,13 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ),
+          if (state.isDemo)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                child: _DemoOffers(onShop: onShop),
+              ),
+            ),
           SliverToBoxAdapter(
             child: SizedBox(
               height: 112,
@@ -173,8 +180,9 @@ class _SearchPrompt extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.onShop});
+  const _Hero({required this.onShop, required this.isDemo});
   final VoidCallback onShop;
+  final bool isDemo;
   @override
   Widget build(BuildContext context) => ClipRRect(
         borderRadius: BorderRadius.circular(18),
@@ -183,10 +191,13 @@ class _Hero extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=85',
-                fit: BoxFit.cover,
-              ),
+              if (isDemo)
+                const ColoredBox(color: Color(0xFF275542))
+              else
+                Image.network(
+                  'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=85',
+                  fit: BoxFit.cover,
+                ),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -247,5 +258,35 @@ class _Hero extends StatelessWidget {
             ],
           ),
         ),
+      );
+}
+
+class _DemoOffers extends StatelessWidget {
+  const _DemoOffers({required this.onShop});
+  final ValueChanged<String?> onShop;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeading(
+              eyebrow: 'Demo offers', title: 'More to explore'),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _offer('Pasalho Brands', 'dal'),
+              _offer('Cleaning Essentials', 'cleaning'),
+              _offer('Monthly Grocery', 'essentials'),
+              _offer('Best Value', null),
+            ],
+          ),
+        ],
+      );
+
+  Widget _offer(String title, String? category) => ActionChip(
+        label: Text(title),
+        onPressed: () => onShop(category),
       );
 }
