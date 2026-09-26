@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../demo/demo_product_assets.dart';
 import '../main.dart';
 import '../models/models.dart';
 import '../widgets/common.dart';
@@ -115,7 +116,9 @@ class _CartLineItem extends StatelessWidget {
           child: SizedBox(
             width: 92,
             height: 92,
-            child: ProductImage(url: line.product.imageUrl),
+            child: ProductImage(
+              url: DemoProductAssets.imageFor(line.product),
+            ),
           ),
         ),
         const SizedBox(width: 13),

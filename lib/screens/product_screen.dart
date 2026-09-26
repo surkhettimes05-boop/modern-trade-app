@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../demo/demo_product_assets.dart';
 import '../main.dart';
 import '../models/models.dart';
 import '../widgets/common.dart';
@@ -29,7 +30,10 @@ class _ProductScreenState extends State<ProductScreen> {
             aspectRatio: 1.15,
             child: Hero(
               tag: 'product-${product.id}',
-              child: ProductImage(url: product.imageUrl, fit: BoxFit.contain),
+              child: ProductImage(
+                url: DemoProductAssets.imageFor(product),
+                fit: BoxFit.contain,
+              ),
             ),
           ),
           Padding(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../demo/demo_product_assets.dart';
 import '../main.dart';
 import '../models/models.dart';
 import '../screens/product_screen.dart';
@@ -193,7 +194,7 @@ class ProductCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ProductImage(url: product.imageUrl),
+                  ProductImage(url: DemoProductAssets.imageFor(product)),
                   if (product.discountPercent > 0)
                     Positioned(
                       left: 8,
@@ -295,7 +296,7 @@ class ProductCard extends StatelessWidget {
 }
 
 class ProductImage extends StatelessWidget {
-  const ProductImage({super.key, required this.url, this.fit = BoxFit.cover});
+  const ProductImage({super.key, required this.url, this.fit = BoxFit.contain});
   final String url;
   final BoxFit fit;
 
@@ -310,20 +311,35 @@ class ProductImage extends StatelessWidget {
         ),
       );
     }
+    final cacheWidth = (MediaQuery.sizeOf(context).width *
+            MediaQuery.devicePixelRatioOf(context))
+        .clamp(240, 1200)
+        .round();
+    Widget error(BuildContext _, Object __, StackTrace? ___) =>
+        const ColoredBox(
+          color: AppColors.cream,
+          child: Center(
+            child: Icon(Icons.inventory_2_outlined,
+                color: AppColors.muted, size: 42),
+          ),
+        );
+    if (url.startsWith('assets/')) {
+      return ColoredBox(
+        color: AppColors.cream,
+        child: Image.asset(
+          url,
+          fit: fit,
+          cacheWidth: cacheWidth,
+          filterQuality: FilterQuality.high,
+          errorBuilder: error,
+        ),
+      );
+    }
     return Image.network(
       url,
       fit: fit,
-      cacheWidth: (MediaQuery.sizeOf(context).width *
-              MediaQuery.devicePixelRatioOf(context))
-          .clamp(240, 1200)
-          .round(),
-      errorBuilder: (_, __, ___) => const ColoredBox(
-        color: AppColors.cream,
-        child: Center(
-          child: Icon(Icons.inventory_2_outlined,
-              color: AppColors.muted, size: 42),
-        ),
-      ),
+      cacheWidth: cacheWidth,
+      errorBuilder: error,
       loadingBuilder: (context, child, progress) => progress == null
           ? child
           : const ColoredBox(
