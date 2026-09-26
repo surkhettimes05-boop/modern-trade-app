@@ -62,7 +62,37 @@ workflows:
         script: flutter analyze
       - name: Run tests
         script: flutter test
+      - name: Diagnose Flutter release arguments
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          echo "Flutter executable: $(command -v flutter)"
+          type flutter || true
+          flutter --version
+          flutter config --list
+          for name in API_BASE_URL ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD SUPPORT_PHONE PRIVACY_POLICY_URL TERMS_URL; do
+            if [ -n "${!name:-}" ]; then
+              echo "$name=SET"
+            else
+              echo "$name=UNSET"
+            fi
+          done
+          echo "Release args: build apk --release --target=lib/main.dart --dart-define=APP_ENV=production --dart-define=API_BASE_URL=<redacted> --dart-define=SUPPORT_PHONE=<redacted-or-empty> --dart-define=PRIVACY_POLICY_URL=<redacted-or-empty> --dart-define=TERMS_URL=<redacted-or-empty>"
       - name: Build signed release APK
-        script: flutter build apk --release --dart-define=APP_ENV=production --dart-define=API_BASE_URL="$API_BASE_URL" --dart-define=SUPPORT_PHONE="${SUPPORT_PHONE:-}" --dart-define=PRIVACY_POLICY_URL="${PRIVACY_POLICY_URL:-}" --dart-define=TERMS_URL="${TERMS_URL:-}"
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          args=(
+            build
+            apk
+            --release
+            --target=lib/main.dart
+            --dart-define=APP_ENV=production
+            "--dart-define=API_BASE_URL=$API_BASE_URL"
+            "--dart-define=SUPPORT_PHONE=${SUPPORT_PHONE:-}"
+            "--dart-define=PRIVACY_POLICY_URL=${PRIVACY_POLICY_URL:-}"
+            "--dart-define=TERMS_URL=${TERMS_URL:-}"
+          )
+          flutter "${args[@]}"
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
