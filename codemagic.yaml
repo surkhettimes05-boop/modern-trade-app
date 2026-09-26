@@ -63,12 +63,6 @@ workflows:
       - name: Run tests
         script: flutter test
       - name: Build signed release APK
-        script: |
-          flutter build apk --release \
-            --dart-define=APP_ENV=production \
-            --dart-define=API_BASE_URL="$API_BASE_URL" \
-            --dart-define=SUPPORT_PHONE="$SUPPORT_PHONE" \
-            --dart-define=PRIVACY_POLICY_URL="$PRIVACY_POLICY_URL" \
-            --dart-define=TERMS_URL="$TERMS_URL"
+        script: flutter build apk --release --dart-define=APP_ENV=production --dart-define=API_BASE_URL="$API_BASE_URL" --dart-define=SUPPORT_PHONE="${SUPPORT_PHONE:-}" --dart-define=PRIVACY_POLICY_URL="${PRIVACY_POLICY_URL:-}" --dart-define=TERMS_URL="${TERMS_URL:-}"
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
