@@ -104,20 +104,16 @@ void main() {
     expect(find.text('Welcome back'), findsOneWidget);
   });
 
-  testWidgets('pickup immediately hides delivery address and shows store',
+  testWidgets('checkout only exposes central-warehouse delivery',
       (tester) async {
     final state = AppState()
       ..products = const [widgetProduct]
-      ..selectedStore = const StoreLocation(
-          id: 'store', name: 'PASALHO Thamel', address: 'Thamel')
       ..customer = const Customer(id: 'customer');
     await state.addToCart(widgetProduct);
     await tester.pumpWidget(scoped(state, const CheckoutScreen()));
     expect(find.text('Street, ward and locality'), findsOneWidget);
-    await tester.tap(find.text('Pickup'));
-    await tester.pump();
-    expect(find.text('Street, ward and locality'), findsNothing);
-    expect(find.text('PASALHO Thamel'), findsOneWidget);
-    expect(find.text('City / municipality'), findsNothing);
+    expect(find.text('Pickup'), findsNothing);
+    expect(find.text('Central warehouse delivery'), findsNothing);
+    expect(find.text('Cash on delivery'), findsOneWidget);
   });
 }

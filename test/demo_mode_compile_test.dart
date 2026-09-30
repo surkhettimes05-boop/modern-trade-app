@@ -25,7 +25,6 @@ void main() {
 
       expect(state.error, isNull);
       expect(state.products, isNotEmpty);
-      expect(state.selectedStore?.id, 'demo-birendranagar');
       expect(state.customer?.id, 'demo-customer');
       expect(requests, 0);
     },

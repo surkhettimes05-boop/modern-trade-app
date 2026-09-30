@@ -59,8 +59,8 @@ void main() {
 
     expect(state.error, isNull);
     expect(state.products.map((product) => product.id), ['live-product']);
-    expect(requestedPaths, contains('/api/public/stores'));
     expect(requestedPaths, contains('/api/public/products'));
+    expect(requestedPaths, isNot(contains('/api/public/stores')));
   });
 
   test('demo initializes entirely from bundled fixtures without API calls',
@@ -82,7 +82,6 @@ void main() {
     await state.initialize();
 
     expect(state.error, isNull);
-    expect(state.selectedStore?.name, 'PASALHO Birendranagar');
     expect(state.products, hasLength(32));
     expect(state.categories, hasLength(10));
     expect(state.customer?.preferredName, 'Demo Customer');
@@ -143,7 +142,7 @@ void main() {
     expect(requestCount, 0);
   });
 
-  test('checkout guards signed-in, live-store, and cart requirements',
+  test('checkout guards signed-in, central delivery, and cart requirements',
       () async {
     final state = AppState(api: testApi((_) async => jsonResponse({})))
       ..products = const [stateProduct];
@@ -154,9 +153,8 @@ void main() {
             .having((e) => e.kind, 'kind', ApiErrorKind.authentication)));
     state.customer = const Customer(id: 'c');
     await expectLater(_checkout(state), throwsA(isA<ApiException>()));
-    state.selectedStore = const StoreLocation(id: 's', name: 'Store');
     await state.clearCart();
-    await expectLater(_checkout(state), throwsA(isA<ApiException>()));
+    await expectLater(_checkout(state, deliveryType: 'DELIVERY'), throwsA(isA<ApiException>()));
   });
 
   test('failed cart upload keeps local cart intact', () async {
@@ -167,8 +165,7 @@ void main() {
       return jsonResponse({'error': 'stock changed'}, 409);
     }))
       ..products = const [stateProduct]
-      ..customer = const Customer(id: 'c')
-      ..selectedStore = const StoreLocation(id: 's', name: 'Store');
+      ..customer = const Customer(id: 'c');
     await state.addToCart(stateProduct);
     await expectLater(_checkout(state), throwsA(isA<ApiException>()));
     expect(state.cart, hasLength(1));
@@ -183,8 +180,7 @@ void main() {
       return jsonResponse({'id': 'order'});
     }))
       ..products = const [stateProduct]
-      ..customer = const Customer(id: 'c')
-      ..selectedStore = const StoreLocation(id: 's', name: 'Store');
+      ..customer = const Customer(id: 'c');
     await state.addToCart(stateProduct);
     expect((await _checkout(state)).id, 'order');
     expect(state.cart, isEmpty);
@@ -210,8 +206,8 @@ void main() {
   });
 }
 
-Future<CustomerOrder> _checkout(AppState state) => state.checkout(
-    deliveryType: 'PICKUP',
+Future<CustomerOrder> _checkout(AppState state, {String deliveryType = 'PICKUP'}) => state.checkout(
+    deliveryType: deliveryType,
     name: 'Asha',
     phone: '9812345678',
     address: '',

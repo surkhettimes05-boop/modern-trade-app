@@ -32,12 +32,11 @@ void main() {
         {'id': 's', 'name': 'Store'}
       ]);
     }));
-    final stores = await repo.loadStores();
-    final result = await repo.loadForStore('s', stores);
+    final result = await repo.load();
     expect(result.products.single.priceMinor, 1250);
     expect(result.products.single.isAvailable, isFalse);
     expect(result.categories.single.id, 'c');
-    expect(productRequest?.queryParameters['store_id'], 's');
+    expect(productRequest?.queryParameters.containsKey('store_id'), isFalse);
   });
 
   test('empty or invalid product response reports an error without fixtures',
@@ -45,7 +44,7 @@ void main() {
     final repo = CatalogRepository(
         testApi((_) async => jsonResponse({'unexpected': true})));
     await expectLater(
-        repo.loadForStore('s', const [StoreLocation(id: 's', name: 'PASALHO')]),
+        repo.load(),
         throwsA(isA<ApiException>()
             .having((e) => e.kind, 'kind', ApiErrorKind.invalidResponse)));
   });

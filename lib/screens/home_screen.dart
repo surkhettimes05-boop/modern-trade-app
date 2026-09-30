@@ -242,7 +242,7 @@ class _Hero extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Browse products, check store availability and order with cash on delivery.',
+                      'Browse the central catalog and order for home delivery with cash on delivery.',
                       style: TextStyle(color: Color(0xFFEDF5F0), height: 1.5),
                     ),
                     const SizedBox(height: 24),

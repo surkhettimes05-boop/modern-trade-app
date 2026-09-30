@@ -19,11 +19,11 @@ class InfoScreen extends StatelessWidget {
           const [
             (
               'How do I place an order?',
-              'Add available items to your cart, choose a live store, sign in with OTP, and complete the cash-on-delivery checkout.'
+              'Browse the central catalog, add items to your cart, sign in with OTP, add a delivery address, and complete the cash-on-delivery checkout.'
             ),
             (
-              'Can I collect my order?',
-              'Yes. Select Pickup during checkout. The selected store will prepare the order.'
+              'Where is my order fulfilled?',
+              'Online orders are picked and dispatched from the PASALHO central warehouse for home delivery.'
             ),
             (
               'How do I cancel?',
@@ -31,7 +31,7 @@ class InfoScreen extends StatelessWidget {
             ),
             (
               'How does payment work?',
-              'The certified Nepal pilot currently accepts cash on delivery or cash at pickup.'
+              'The V1 pilot accepts cash on delivery.'
             ),
           ],
         ),
@@ -63,15 +63,15 @@ class InfoScreen extends StatelessWidget {
           const [
             (
               'Orders',
-              'Orders remain subject to stock, price, serviceability, and store confirmation.'
+              'Orders remain subject to stock, price, serviceability, and central warehouse confirmation.'
             ),
             (
               'Pricing',
               'Prices are shown in Nepalese rupees. The server validates authoritative prices during checkout.'
             ),
             (
-              'Delivery and pickup',
-              'Availability, preparation, and delivery timing vary by store and location.'
+              'Delivery',
+              'Orders are fulfilled from the PASALHO central warehouse and delivered to the address provided at checkout.'
             ),
             (
               'Cancellations',

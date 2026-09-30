@@ -22,7 +22,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _state = TextEditingController();
   final _postalCode = TextEditingController();
   final _notes = TextEditingController();
-  String _deliveryType = 'DELIVERY';
   bool _busy = false;
   String? _error;
   Future<List<Map<String, dynamic>>>? _savedAddresses;
@@ -95,7 +94,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
     try {
       final order = await state.checkout(
-        deliveryType: _deliveryType,
+        deliveryType: 'DELIVERY',
         name: _name.text.trim(),
         phone: _phone.text.trim(),
         address: _address.text.trim(),
@@ -116,7 +115,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'Your COD order ${order.orderNumber ?? order.id} has been received.\n\n'
             '${state.isDemo ? 'Demo' : 'Server'} total: ${formatNpr(order.total)}\n'
             'Payment: Cash on delivery\n'
-            'Fulfilment: ${order.deliveryType ?? _deliveryType}\n'
+            'Fulfilment: central warehouse delivery\n'
             'Status: ${order.status.replaceAll('_', ' ')}',
             textAlign: TextAlign.center,
           ),
@@ -153,37 +152,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     .titleLarge
                     ?.copyWith(fontWeight: FontWeight.w900)),
             const SizedBox(height: 10),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(
-                  value: 'DELIVERY',
-                  icon: Icon(Icons.local_shipping_outlined),
-                  label: Text('Delivery'),
-                ),
-                ButtonSegment(
-                  value: 'PICKUP',
-                  icon: Icon(Icons.store_outlined),
-                  label: Text('Pickup'),
-                ),
-              ],
-              selected: {_deliveryType},
-              onSelectionChanged: (value) {
-                setState(() => _deliveryType = value.first);
-                _form.currentState?.validate();
-              },
-            ),
-            if (_deliveryType == 'PICKUP') ...[
-              const SizedBox(height: 12),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.store, color: AppColors.brand),
-                  title: Text(state.selectedStore?.name ?? 'No store selected'),
-                  subtitle:
-                      Text(state.selectedStore?.address ?? 'Pickup store'),
-                ),
-              ),
-            ],
-            if (_deliveryType == 'DELIVERY' && _savedAddresses != null) ...[
+            if (_savedAddresses != null) ...[
               const SizedBox(height: 16),
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: _savedAddresses,
@@ -248,53 +217,50 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               decoration: const InputDecoration(labelText: 'Mobile number'),
             ),
             const SizedBox(height: 12),
-            if (_deliveryType == 'DELIVERY') ...[
-              TextFormField(
-                controller: _address,
-                validator: _required,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                    labelText: 'Street, ward and locality'),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _city,
-                      validator: _required,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                          labelText: 'City / municipality'),
-                    ),
+            TextFormField(
+              controller: _address,
+              validator: _required,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                  labelText: 'Street, ward and locality'),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _city,
+                    validator: _required,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                        labelText: 'City / municipality'),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _state,
-                      validator: _required,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(labelText: 'Province'),
-                    ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: _state,
+                    validator: _required,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Province'),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _postalCode,
-                validator: _required,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Postal code'),
-              ),
-            ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _postalCode,
+              validator: _required,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(labelText: 'Postal code'),
+            ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _notes,
               maxLines: 3,
               decoration: InputDecoration(
-                  labelText:
-                      '${_deliveryType == 'PICKUP' ? 'Pickup' : 'Delivery'} notes (optional)'),
+                  labelText: 'Delivery notes (optional)'),
             ),
             const SizedBox(height: 24),
             Card(

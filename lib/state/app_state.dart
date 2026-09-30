@@ -39,8 +39,6 @@ class AppState extends ChangeNotifier {
   final CartController cartController = CartController();
   List<Product> products = const [];
   List<ProductCategory> categories = const [];
-  List<StoreLocation> stores = const [];
-  StoreLocation? selectedStore;
   Customer? customer;
   bool loading = true;
   bool catalogLoading = false;
@@ -76,18 +74,6 @@ class AppState extends ChangeNotifier {
       }
       await api.restoreSession();
       try {
-        stores = await catalogRepository.loadStores();
-        if (stores.isEmpty) {
-          throw const ApiException('No fulfilment stores are available.');
-        }
-        final prefs = await SharedPreferences.getInstance();
-        final savedStore = prefs.getString('selected_store');
-        selectedStore =
-            stores.where((store) => store.id == savedStore).firstOrNull ??
-                stores.where((store) => !store.temporarilyClosed).firstOrNull;
-        if (selectedStore == null) {
-          throw const ApiException('No fulfilment stores are currently open.');
-        }
         await loadCatalog();
         await cartController.restore(products);
       } catch (exception) {
@@ -117,21 +103,11 @@ class AppState extends ChangeNotifier {
       if (isDemo) {
         products = DemoData.products;
         categories = DemoData.categories;
-        stores = DemoData.stores;
-        selectedStore ??= stores.first;
         return;
       }
-      if (stores.isEmpty) stores = await catalogRepository.loadStores();
-      selectedStore ??=
-          stores.where((store) => !store.temporarilyClosed).firstOrNull;
-      final store = selectedStore;
-      if (store == null) {
-        throw const ApiException('Choose a store to view products.');
-      }
-      final catalog = await catalogRepository.loadForStore(store.id, stores);
+      final catalog = await catalogRepository.load();
       products = catalog.products;
       categories = catalog.categories;
-      stores = catalog.stores;
     } catch (exception) {
       if (clearExisting) {
         products = const [];
@@ -161,17 +137,6 @@ class AppState extends ChangeNotifier {
               .contains(normalized);
       return categoryMatch && textMatch;
     }).toList(growable: false);
-  }
-
-  Future<void> selectStore(StoreLocation store) async {
-    if (store.id == selectedStore?.id) return;
-    selectedStore = store;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_store', store.id);
-    if (!isDemo) await checkoutRepository.abandonAttempt();
-    await loadCatalog(clearExisting: true);
-    await cartController.restore(products);
-    notifyListeners();
   }
 
   Future<void> addToCart(Product product, {int quantity = 1}) async {
@@ -277,15 +242,10 @@ class AppState extends ChangeNotifier {
       throw const ApiException('Please sign in to checkout.',
           kind: ApiErrorKind.authentication);
     }
-    final store = selectedStore;
-    if (store == null) {
-      throw const ApiException('Choose a live store before checkout');
-    }
     if (cart.isEmpty) throw const ApiException('Your cart is empty');
     if (isDemo) return _checkoutDemo(deliveryType);
     try {
       final order = await checkoutRepository.checkout(
-        store: store,
         customer: customer!,
         lines: cart,
         details: CheckoutDetails(
@@ -350,14 +310,8 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _initializeDemo() async {
-    stores = DemoData.stores;
     products = DemoData.products;
     categories = DemoData.categories;
-    final prefs = await SharedPreferences.getInstance();
-    final savedStore = prefs.getString('selected_store');
-    selectedStore =
-        stores.where((store) => store.id == savedStore).firstOrNull ??
-            stores.first;
     customer = DemoData.customer;
     await cartController.restore(products);
   }

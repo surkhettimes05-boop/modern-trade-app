@@ -56,7 +56,7 @@ class _AppShellState extends State<AppShell> {
               SizedBox(height: 28),
               CircularProgressIndicator(),
               SizedBox(height: 14),
-              Text('Loading products for your store…'),
+              Text('Loading the PASALHO central catalog…'),
             ],
           ),
         ),
@@ -91,7 +91,19 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       appBar: AppBar(
         title: const PasalhoLogo(compact: true),
-        actions: const [StoreSelector(), SizedBox(width: 6)],
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.local_shipping_outlined, size: 18),
+                SizedBox(width: 4),
+                Text('Central delivery', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
       ),
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: NavigationBar(
