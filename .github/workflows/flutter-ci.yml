@@ -1,0 +1,23 @@
+name: Flutter V1 CI
+
+on:
+  push:
+    branches:
+      - main
+      - codex/sync-production-flutter
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
