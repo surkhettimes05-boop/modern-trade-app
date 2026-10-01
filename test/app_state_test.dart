@@ -152,9 +152,11 @@ void main() {
         throwsA(isA<ApiException>()
             .having((e) => e.kind, 'kind', ApiErrorKind.authentication)));
     state.customer = const Customer(id: 'c');
-    await expectLater(_checkout(state), throwsA(isA<ApiException>()));
+    await expectLater(
+        _checkout(state, deliveryType: 'PICKUP'), throwsA(isA<ApiException>()));
     await state.clearCart();
-    await expectLater(_checkout(state, deliveryType: 'DELIVERY'), throwsA(isA<ApiException>()));
+    await expectLater(_checkout(state, deliveryType: 'DELIVERY'),
+        throwsA(isA<ApiException>()));
   });
 
   test('failed cart upload keeps local cart intact', () async {
@@ -206,11 +208,13 @@ void main() {
   });
 }
 
-Future<CustomerOrder> _checkout(AppState state, {String deliveryType = 'PICKUP'}) => state.checkout(
-    deliveryType: deliveryType,
-    name: 'Asha',
-    phone: '9812345678',
-    address: '',
-    city: '',
-    state: '',
-    postalCode: '');
+Future<CustomerOrder> _checkout(AppState state,
+        {String deliveryType = 'DELIVERY'}) =>
+    state.checkout(
+        deliveryType: deliveryType,
+        name: 'Asha',
+        phone: '9812345678',
+        address: '',
+        city: '',
+        state: '',
+        postalCode: '');

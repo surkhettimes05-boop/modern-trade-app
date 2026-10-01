@@ -12,7 +12,6 @@ coverage/
 .idea/
 *.iml
 android/.gradle/
-android/.kotlin/
 android/local.properties
 ios/Flutter/ephemeral/
 ios/Pods/

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:modern_trade_flutter/core/api_client.dart';
-import 'package:modern_trade_flutter/models/models.dart';
 import 'package:modern_trade_flutter/repositories/catalog_repository.dart';
 
 import 'test_helpers.dart';

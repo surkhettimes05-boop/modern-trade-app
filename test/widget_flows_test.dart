@@ -114,6 +114,9 @@ void main() {
     expect(find.text('Street, ward and locality'), findsOneWidget);
     expect(find.text('Pickup'), findsNothing);
     expect(find.text('Central warehouse delivery'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Cash on delivery'), 250,
+        scrollable: find.descendant(
+            of: find.byType(ListView), matching: find.byType(Scrollable)).first);
     expect(find.text('Cash on delivery'), findsOneWidget);
   });
 }
