@@ -43,6 +43,10 @@ class Product {
   /// Unknown or future backend states must fail closed.
   bool get isAvailable =>
       const {'AVAILABLE'}.contains(availability.trim().toUpperCase());
+
+  /// The catalog explicitly allows these products to be checked by checkout.
+  bool get canOrder => const {'AVAILABLE', 'CHECK_AT_CHECKOUT'}
+      .contains(availability.trim().toUpperCase());
   int get priceMinor => (price * 100).round();
   int? get originalPriceMinor =>
       originalPrice == null ? null : (originalPrice! * 100).round();
@@ -58,7 +62,7 @@ class Product {
       id: _text(json['id']),
       sku: json['sku']?.toString(),
       name: _text(json['name'], 'Product'),
-      brand: _text(json['brand'], 'NOVA MART'),
+      brand: _text(json['brand']),
       category: _text(json['category_name'], 'Everyday essentials'),
       categoryId: json['category_id']?.toString(),
       description: _text(json['description']),
@@ -122,7 +126,7 @@ class StoreLocation {
 
   factory StoreLocation.fromJson(Map<String, dynamic> json) => StoreLocation(
         id: _text(json['id']),
-        name: _text(json['name'], 'NOVA MART'),
+        name: _text(json['name'], 'PASALHO'),
         address: json['address']?.toString(),
         phone: json['phone']?.toString(),
         hours: json['hours']?.toString(),

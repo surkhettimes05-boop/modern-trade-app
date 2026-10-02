@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api_client.dart';
+import '../core/app_config.dart';
+import '../demo/demo_data.dart';
 import '../models/models.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/cart_controller.dart';
@@ -9,117 +13,15 @@ import '../repositories/catalog_repository.dart';
 import '../repositories/checkout_repository.dart';
 import '../repositories/customer_repository.dart';
 
-const _fallbackProducts = <Product>[
-  Product(
-    id: 'opening-rice-5kg',
-    sku: 'RICE-5KG',
-    name: 'Premium Basmati Rice 5kg',
-    brand: 'StoreSync Select',
-    category: 'Rice',
-    categoryId: 'opening-1',
-    description: 'Long-grain premium rice for everyday family meals.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=900&q=82',
-    price: 799,
-    originalPrice: 999,
-    rating: 4.8,
-    reviewCount: 42,
-    availability: 'AVAILABLE',
-    unit: '5 kg bag',
-  ),
-  Product(
-    id: 'opening-oil-1l',
-    sku: 'OIL-1L',
-    name: 'Sunflower Oil 1L',
-    brand: 'StoreSync Select',
-    category: 'Cooking oil & ghee',
-    categoryId: 'opening-2',
-    description: 'Refined sunflower oil for daily cooking.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=900&q=82',
-    price: 179,
-    originalPrice: 219,
-    rating: 4.7,
-    reviewCount: 35,
-    availability: 'AVAILABLE',
-    unit: '1 L bottle',
-  ),
-  Product(
-    id: 'opening-water-1l',
-    sku: 'WATER-1L',
-    name: 'Mineral Water 1L',
-    brand: 'StoreSync Select',
-    category: 'Water',
-    categoryId: 'opening-3',
-    description: 'Purified mineral water for home and on-the-go.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=900&q=82',
-    price: 25,
-    originalPrice: 30,
-    rating: 4.6,
-    reviewCount: 28,
-    availability: 'AVAILABLE',
-    unit: '1 L bottle',
-  ),
-  Product(
-    id: 'opening-noodles',
-    sku: 'NOODLES-FAM',
-    name: 'Instant Noodles Family Pack',
-    brand: 'Wai Wai',
-    category: 'Instant noodles',
-    categoryId: 'opening-4',
-    description: 'Fast, familiar pantry comfort for busy days.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=900&q=82',
-    price: 120,
-    rating: 4.7,
-    reviewCount: 31,
-    availability: 'AVAILABLE',
-    unit: '5 x 70 g',
-  ),
-  Product(
-    id: 'opening-detergent',
-    sku: 'LAUNDRY-1KG',
-    name: 'Everyday Laundry Detergent 1kg',
-    brand: 'StoreSync Select',
-    category: 'Laundry',
-    categoryId: 'opening-5',
-    description: 'Reliable cleaning power for everyday laundry.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&w=900&q=82',
-    price: 245,
-    rating: 4.5,
-    reviewCount: 24,
-    availability: 'AVAILABLE',
-    unit: '1 kg pack',
-  ),
-  Product(
-    id: 'opening-shampoo',
-    sku: 'SHAMPOO-340',
-    name: 'Daily Care Shampoo 340ml',
-    brand: 'StoreSync Select',
-    category: 'Hair care',
-    categoryId: 'opening-6',
-    description: 'Gentle everyday shampoo for the whole household.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=82',
-    price: 299,
-    rating: 4.4,
-    reviewCount: 19,
-    availability: 'AVAILABLE',
-    unit: '340 ml bottle',
-  ),
-];
-
 class AppState extends ChangeNotifier {
-  AppState({ApiClient? api})
-      : api = api ??
-            ApiClient(
-              baseUrl: const String.fromEnvironment(
-                'API_BASE_URL',
-                defaultValue: 'https://storesync-backend-dg8z.onrender.com',
-              ),
-            ) {
+  AppState({
+    ApiClient? api,
+    String? Function()? configurationValidator,
+    bool? demoMode,
+  })  : isDemo = demoMode ?? AppConfig.isDemo,
+        _configurationValidator = configurationValidator ??
+            (api == null ? AppConfig.configurationError : null),
+        api = api ?? ApiClient(baseUrl: AppConfig.apiBaseUrl) {
     authRepository = AuthRepository(this.api);
     catalogRepository = CatalogRepository(this.api);
     checkoutRepository = CheckoutRepository(this.api);
@@ -128,6 +30,8 @@ class AppState extends ChangeNotifier {
   }
 
   final ApiClient api;
+  final bool isDemo;
+  final String? Function()? _configurationValidator;
   late final AuthRepository authRepository;
   late final CatalogRepository catalogRepository;
   late final CheckoutRepository checkoutRepository;
@@ -135,12 +39,11 @@ class AppState extends ChangeNotifier {
   final CartController cartController = CartController();
   List<Product> products = const [];
   List<ProductCategory> categories = const [];
-  List<StoreLocation> stores = const [];
-  StoreLocation? selectedStore;
   Customer? customer;
   bool loading = true;
-  bool usingFallbackCatalog = false;
+  bool catalogLoading = false;
   String? error;
+  static const _demoOrdersKey = 'demo_orders_v1';
 
   List<CartLine> get cart => cartController.quantities.entries
       .map((entry) {
@@ -164,14 +67,20 @@ class AppState extends ChangeNotifier {
     loading = true;
     notifyListeners();
     try {
+      _validateConfiguration();
+      if (isDemo) {
+        await _initializeDemo();
+        return;
+      }
       await api.restoreSession();
-      await loadCatalog();
-      await cartController.restore(products);
-      final prefs = await SharedPreferences.getInstance();
-      final savedStore = prefs.getString('selected_store');
-      selectedStore =
-          stores.where((store) => store.id == savedStore).firstOrNull ??
-              stores.firstOrNull;
+      try {
+        await loadCatalog();
+        await cartController.restore(products);
+      } catch (exception) {
+        products = const [];
+        categories = const [];
+        error = userMessage(exception);
+      }
       if (api.hasSession) await validateSession();
     } catch (exception) {
       error = userMessage(exception);
@@ -181,28 +90,39 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> loadCatalog() async {
+  Future<void> loadCatalog({bool clearExisting = false}) async {
     error = null;
+    catalogLoading = true;
+    if (clearExisting) {
+      products = const [];
+      categories = const [];
+    }
+    notifyListeners();
     try {
+      _validateConfiguration();
+      if (isDemo) {
+        products = DemoData.products;
+        categories = DemoData.categories;
+        return;
+      }
       final catalog = await catalogRepository.load();
       products = catalog.products;
       categories = catalog.categories;
-      stores = catalog.stores;
-      usingFallbackCatalog = false;
     } catch (exception) {
-      products = _fallbackProducts;
-      categories = _fallbackCategories;
-      stores = const [
-        StoreLocation(
-          id: 'offline-store',
-          name: 'NOVA MART',
-          address: 'Connect to the StoreSync API for live availability',
-        ),
-      ];
-      usingFallbackCatalog = true;
-      error = 'Live catalog unavailable. Showing the opening range.';
+      if (clearExisting) {
+        products = const [];
+        categories = const [];
+      }
+      error = userMessage(exception);
+    } finally {
+      catalogLoading = false;
     }
     notifyListeners();
+  }
+
+  void _validateConfiguration() {
+    final configurationError = _configurationValidator?.call();
+    if (configurationError != null) throw ApiException(configurationError);
   }
 
   List<Product> search(String query, {String? categoryId}) {
@@ -217,13 +137,6 @@ class AppState extends ChangeNotifier {
               .contains(normalized);
       return categoryMatch && textMatch;
     }).toList(growable: false);
-  }
-
-  Future<void> selectStore(StoreLocation store) async {
-    selectedStore = store;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_store', store.id);
-    notifyListeners();
   }
 
   Future<void> addToCart(Product product, {int quantity = 1}) async {
@@ -242,14 +155,27 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> requestOtp(String phone) => authRepository.requestOtp(phone);
+  Future<void> requestOtp(String phone) async {
+    if (isDemo) return;
+    await authRepository.requestOtp(phone);
+  }
 
   Future<void> verifyOtp(String phone, String code) async {
+    if (isDemo) {
+      customer = DemoData.customer;
+      notifyListeners();
+      return;
+    }
     customer = await authRepository.verifyOtp(phone, code);
     notifyListeners();
   }
 
   Future<void> validateSession() async {
+    if (isDemo) {
+      customer = DemoData.customer;
+      notifyListeners();
+      return;
+    }
     try {
       customer = await authRepository.validateSession();
     } on ApiException catch (exception) {
@@ -260,6 +186,11 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    if (isDemo) {
+      customer = DemoData.customer;
+      notifyListeners();
+      return;
+    }
     try {
       await authRepository.logout();
     } finally {
@@ -268,7 +199,34 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<List<CustomerOrder>> loadOrders() => customerRepository.loadOrders();
+  Future<List<CustomerOrder>> loadOrders() async {
+    if (!isDemo) return customerRepository.loadOrders();
+    final raw =
+        (await SharedPreferences.getInstance()).getString(_demoOrdersKey);
+    if (raw == null) return const [];
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return const [];
+    return decoded
+        .whereType<Map>()
+        .map((row) => CustomerOrder.fromJson(Map<String, dynamic>.from(row)))
+        .toList(growable: false);
+  }
+
+  Future<List<Map<String, dynamic>>> loadAddresses() async {
+    if (isDemo) {
+      return DemoData.addresses.map(Map<String, dynamic>.from).toList();
+    }
+    final response = await customerRepository.loadAddresses(customer!.id);
+    final rows = response is List
+        ? response
+        : response is Map && response['data'] is List
+            ? response['data'] as List
+            : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
 
   Future<CustomerOrder> checkout({
     required String deliveryType,
@@ -284,27 +242,78 @@ class AppState extends ChangeNotifier {
       throw const ApiException('Please sign in to checkout.',
           kind: ApiErrorKind.authentication);
     }
-    final store = selectedStore;
-    if (store == null || store.id == 'offline-store') {
-      throw const ApiException('Choose a live store before checkout');
-    }
     if (cart.isEmpty) throw const ApiException('Your cart is empty');
-    final order = await checkoutRepository.checkout(
-      store: store,
-      customer: customer!,
-      lines: cart,
-      details: CheckoutDetails(
-          deliveryType: deliveryType,
-          name: name,
-          phone: phone,
-          address: address,
-          city: city,
-          state: state,
-          postalCode: postalCode,
-          notes: notes),
+    if (isDemo) return _checkoutDemo(deliveryType);
+    try {
+      final order = await checkoutRepository.checkout(
+        customer: customer!,
+        lines: cart,
+        details: CheckoutDetails(
+            deliveryType: deliveryType,
+            name: name,
+            phone: phone,
+            address: address,
+            city: city,
+            state: state,
+            postalCode: postalCode,
+            notes: notes),
+      );
+      await clearCart();
+      return order;
+    } on ApiException catch (exception) {
+      if (exception.kind == ApiErrorKind.conflict) {
+        await loadCatalog();
+        await cartController.restore(products);
+        notifyListeners();
+        throw const ApiException(
+          'A price or availability changed. Your cart has been refreshed; please review it and try again.',
+          kind: ApiErrorKind.conflict,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<CustomerOrder> _checkoutDemo(String deliveryType) async {
+    final prefs = await SharedPreferences.getInstance();
+    final orders = await loadOrders();
+    final number = 'DEMO-${1001 + orders.length}';
+    final order = CustomerOrder(
+      id: number,
+      orderNumber: number,
+      status: 'CONFIRMED',
+      total: cartSubtotal,
+      orderDate: DateTime.now(),
+      deliveryType: deliveryType,
     );
+    final encoded = [
+      {
+        'id': order.id,
+        'order_number': order.orderNumber,
+        'status': order.status,
+        'total': order.total,
+        'order_date': order.orderDate!.toIso8601String(),
+        'delivery_type': order.deliveryType,
+      },
+      ...orders.map((item) => {
+            'id': item.id,
+            'order_number': item.orderNumber,
+            'status': item.status,
+            'total': item.total,
+            'order_date': item.orderDate?.toIso8601String(),
+            'delivery_type': item.deliveryType,
+          }),
+    ];
+    await prefs.setString(_demoOrdersKey, jsonEncode(encoded));
     await clearCart();
     return order;
+  }
+
+  Future<void> _initializeDemo() async {
+    products = DemoData.products;
+    categories = DemoData.categories;
+    customer = DemoData.customer;
+    await cartController.restore(products);
   }
 
   Future<void> _onSessionExpired() async {
@@ -318,27 +327,6 @@ class AppState extends ChangeNotifier {
     super.dispose();
   }
 }
-
-const _fallbackCategories = <ProductCategory>[
-  ProductCategory(id: 'opening-1', name: 'Rice', slug: 'rice', skuCount: 25),
-  ProductCategory(
-    id: 'opening-2',
-    name: 'Cooking oil & ghee',
-    slug: 'cooking-oil-ghee',
-    skuCount: 25,
-  ),
-  ProductCategory(id: 'opening-3', name: 'Water', slug: 'water', skuCount: 8),
-  ProductCategory(
-    id: 'opening-4',
-    name: 'Instant noodles',
-    slug: 'instant-noodles',
-    skuCount: 25,
-  ),
-  ProductCategory(
-      id: 'opening-5', name: 'Laundry', slug: 'laundry', skuCount: 25),
-  ProductCategory(
-      id: 'opening-6', name: 'Hair care', slug: 'hair-care', skuCount: 25),
-];
 
 extension _FirstOrNull<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;

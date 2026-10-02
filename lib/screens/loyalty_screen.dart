@@ -23,7 +23,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('NOVA Rewards')),
+        appBar: AppBar(title: const Text('PASALHO Rewards')),
         body: FutureBuilder<dynamic>(
           future: _summary,
           builder: (context, snapshot) {

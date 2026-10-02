@@ -4,7 +4,9 @@ import 'package:modern_trade_flutter/main.dart';
 import 'package:modern_trade_flutter/models/models.dart';
 import 'package:modern_trade_flutter/screens/cart_screen.dart';
 import 'package:modern_trade_flutter/screens/checkout_screen.dart';
+import 'package:modern_trade_flutter/screens/app_shell.dart';
 import 'package:modern_trade_flutter/screens/login_screen.dart';
+import 'package:modern_trade_flutter/screens/product_screen.dart';
 import 'package:modern_trade_flutter/state/app_state.dart';
 import 'package:modern_trade_flutter/widgets/common.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 const widgetProduct = Product(
     id: 'p',
     name: 'Rice',
-    brand: 'NOVA',
+    brand: 'PASALHO',
     category: 'Food',
     description: '',
     imageUrl: '',
@@ -41,7 +43,7 @@ void main() {
     const blocked = Product(
         id: 'blocked',
         name: 'Blocked item',
-        brand: 'NOVA',
+        brand: 'PASALHO',
         category: 'Food',
         description: '',
         imageUrl: '',
@@ -63,6 +65,35 @@ void main() {
         isNull);
   });
 
+  testWidgets('catalog failure shows PASALHO retry state with no products',
+      (tester) async {
+    final state = AppState()
+      ..loading = false
+      ..error = 'The request timed out. Please try again.';
+
+    await tester.pumpWidget(scoped(state, const AppShell()));
+
+    expect(find.text('Unable to connect to PASALHO'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.byType(ProductCard), findsNothing);
+  });
+
+  testWidgets('missing production configuration is distinct from connectivity',
+      (tester) async {
+    final state = AppState()
+      ..loading = false
+      ..error = 'Production API configuration is missing.';
+
+    await tester.pumpWidget(scoped(state, const AppShell()));
+
+    expect(find.text('PASALHO configuration error'), findsOneWidget);
+    expect(find.text('Unable to connect to PASALHO'), findsNothing);
+    expect(
+      find.text('Production API configuration is missing.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('cart checkout requires sign in and navigates to login',
       (tester) async {
     final state = AppState()..products = const [widgetProduct];
@@ -74,20 +105,36 @@ void main() {
     expect(find.text('Welcome back'), findsOneWidget);
   });
 
-  testWidgets('pickup immediately hides delivery address and shows store',
+  testWidgets('product details stay visible above basket actions on a narrow phone', (tester) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = AppState()..products = const [widgetProduct];
+    await tester.pumpWidget(scoped(state, const ProductScreen(product: widgetProduct)));
+    await tester.pumpAndSettle();
+    expect(find.text('Rice').hitTestable(), findsOneWidget);
+    await tester.tap(find.text('Add to cart'));
+    await tester.pumpAndSettle();
+    expect(state.cartCount, 1);
+    expect(find.text('View basket').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('checkout only exposes central-warehouse delivery',
       (tester) async {
     final state = AppState()
       ..products = const [widgetProduct]
-      ..selectedStore = const StoreLocation(
-          id: 'store', name: 'NOVA MART Thamel', address: 'Thamel')
       ..customer = const Customer(id: 'customer');
     await state.addToCart(widgetProduct);
     await tester.pumpWidget(scoped(state, const CheckoutScreen()));
+    await tester.scrollUntilVisible(find.text('Street, ward and locality'), 200,
+        scrollable: find.byType(Scrollable).first);
     expect(find.text('Street, ward and locality'), findsOneWidget);
-    await tester.tap(find.text('Pickup'));
-    await tester.pump();
-    expect(find.text('Street, ward and locality'), findsNothing);
-    expect(find.text('NOVA MART Thamel'), findsOneWidget);
-    expect(find.text('City / municipality'), findsNothing);
+    expect(find.text('Pickup'), findsNothing);
+    expect(find.text('Central warehouse delivery'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Cash on delivery'), 250,
+        scrollable: find.descendant(
+            of: find.byType(ListView), matching: find.byType(Scrollable)).first);
+    expect(find.text('Cash on delivery'), findsOneWidget);
   });
 }

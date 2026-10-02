@@ -7,8 +7,10 @@ import 'test_helpers.dart';
 void main() {
   test('maps catalog responses and keeps unavailable products visible',
       () async {
+    Uri? productRequest;
     final repo = CatalogRepository(testApi((request) async {
       if (request.url.path.endsWith('products')) {
+        productRequest = request.url;
         return jsonResponse({
           'data': [
             {
@@ -33,9 +35,11 @@ void main() {
     expect(result.products.single.priceMinor, 1250);
     expect(result.products.single.isAvailable, isFalse);
     expect(result.categories.single.id, 'c');
+    expect(productRequest?.queryParameters.containsKey('store_id'), isFalse);
   });
 
-  test('empty or invalid product response triggers fallback signal', () async {
+  test('empty or invalid product response reports an error without fixtures',
+      () async {
     final repo = CatalogRepository(
         testApi((_) async => jsonResponse({'unexpected': true})));
     await expectLater(

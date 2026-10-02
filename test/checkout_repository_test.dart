@@ -12,13 +12,12 @@ import 'test_helpers.dart';
 const product = Product(
     id: 'p1',
     name: 'Rice',
-    brand: 'NOVA',
+    brand: 'PASALHO',
     category: 'Food',
     description: '',
     imageUrl: '',
     price: 799,
     availability: 'AVAILABLE');
-const store = StoreLocation(id: 's1', name: 'NOVA MART');
 const customer = Customer(id: 'c1');
 const details = CheckoutDetails(
     deliveryType: 'DELIVERY',
@@ -45,7 +44,6 @@ void main() {
       return jsonResponse({});
     }));
     final order = await repo.checkout(
-        store: store,
         customer: customer,
         lines: const [CartLine(product: product, quantity: 1)],
         details: details);
@@ -80,7 +78,6 @@ void main() {
       return jsonResponse({});
     }));
     Future<CustomerOrder> args() => repo.checkout(
-        store: store,
         customer: customer,
         lines: const [CartLine(product: product, quantity: 1)],
         details: details);
@@ -103,7 +100,6 @@ void main() {
     }));
     await expectLater(
         repo.checkout(
-            store: store,
             customer: customer,
             lines: const [CartLine(product: product, quantity: 1)],
             details: details),
@@ -114,24 +110,46 @@ void main() {
         isNotNull);
   });
 
-  test('pickup omits delivery-only fields', () async {
-    late Map<String, dynamic> body;
+  test('rejects unsupported pickup before writing a cart', () async {
+    final repo = CheckoutRepository(testApi((_) async => jsonResponse({})));
+    await expectLater(
+        repo.checkout(
+            customer: customer,
+            lines: const [CartLine(product: product, quantity: 1)],
+            details: const CheckoutDetails(
+                deliveryType: 'PICKUP', name: 'Asha', phone: '9812345678')),
+        throwsA(isA<ApiException>()));
+  });
+
+  test('changing order details starts a new idempotent attempt', () async {
+    final keys = <String>[];
     final repo = CheckoutRepository(testApi((request) async {
       if (request.url.path == '/api/shopping-cart') {
-        return jsonResponse({'id': 'cart-1'});
+        return jsonResponse({'id': 'cart-${keys.length + 1}'});
       }
       if (request.url.path.endsWith('/items')) return jsonResponse({});
-      body = jsonDecode(request.body) as Map<String, dynamic>;
-      return jsonResponse({'id': 'order'});
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      keys.add(body['idempotency_key'].toString());
+      return jsonResponse({'id': 'order-${keys.length}'});
     }));
+
     await repo.checkout(
-        store: store,
+        customer: customer,
+        lines: const [CartLine(product: product, quantity: 1)],
+        details: details);
+    await repo.checkout(
         customer: customer,
         lines: const [CartLine(product: product, quantity: 1)],
         details: const CheckoutDetails(
-            deliveryType: 'PICKUP', name: 'Asha', phone: '9812345678'));
-    expect(body['delivery_type'], 'PICKUP');
-    expect(body.containsKey('shipping_address'), isFalse);
-    expect(body.containsKey('shipping_city'), isFalse);
+            deliveryType: 'DELIVERY',
+            name: 'Asha Changed',
+            phone: '9812345678',
+            address: 'Ward 1',
+            city: 'Kathmandu',
+            state: 'Bagmati',
+            postalCode: '44600'));
+
+    expect(keys, hasLength(2));
+    expect(keys[0], isNot(keys[1]));
   });
 }

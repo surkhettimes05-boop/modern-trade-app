@@ -1,4 +1,4 @@
-package com.novamart.modern_trade_flutter
+package com.pasalho.customer
 
 import io.flutter.embedding.android.FlutterActivity
 

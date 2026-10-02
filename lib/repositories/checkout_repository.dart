@@ -35,24 +35,22 @@ class CheckoutRepository {
   static const _attemptKey = 'checkout_attempt_v1';
 
   Future<CustomerOrder> checkout(
-      {required StoreLocation store,
-      required Customer customer,
+      {required Customer customer,
       required List<CartLine> lines,
       required CheckoutDetails details}) async {
     if (lines.isEmpty) throw const ApiException('Your cart is empty');
-    if (details.deliveryType != 'PICKUP' &&
-        details.deliveryType != 'DELIVERY') {
-      throw const ApiException('Choose delivery or pickup.');
+    if (details.deliveryType != 'DELIVERY') {
+      throw const ApiException('Only central-warehouse delivery is available.');
     }
     for (final line in lines) {
-      if (!line.product.isAvailable ||
+      if (!line.product.canOrder ||
           line.quantity < 1 ||
           line.quantity > AppConfig.maxCartQuantity) {
         throw const ApiException(
             'One or more cart quantities are invalid. Please review your cart.');
       }
     }
-    final fingerprint = _fingerprint(store.id, customer.id, lines);
+    final fingerprint = _fingerprint(customer.id, lines, details);
     final prefs = await SharedPreferences.getInstance();
     var attempt = _Attempt.read(prefs.getString(_attemptKey));
     if (attempt == null || attempt.fingerprint != fingerprint) {
@@ -62,8 +60,7 @@ class CheckoutRepository {
     var activeAttempt = attempt;
 
     if (activeAttempt.cartId == null) {
-      final response =
-          await api.post('/api/shopping-cart', body: {'store_id': store.id});
+      final response = await api.post('/api/shopping-cart', body: const {});
       final cartId = response is Map ? response['id']?.toString() : null;
       if (cartId == null || cartId.isEmpty) {
         throw const ApiException(
@@ -88,7 +85,6 @@ class CheckoutRepository {
     final delivery = details.deliveryType == 'DELIVERY';
     final result = await api.post('/api/checkout/cod', body: {
       'cart_id': activeAttempt.cartId,
-      'store_id': store.id,
       'idempotency_key': activeAttempt.key,
       'delivery_type': details.deliveryType,
       'shipping_name': details.name,
@@ -122,12 +118,24 @@ class CheckoutRepository {
       prefs.setString(_attemptKey, jsonEncode(attempt.toJson()));
   String _newKey(String customerId) =>
       'mobile-$customerId-${DateTime.now().microsecondsSinceEpoch}-${List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join()}';
-  String _fingerprint(String storeId, String customerId, List<CartLine> lines) {
+  String _fingerprint(
+      String customerId, List<CartLine> lines, CheckoutDetails details) {
     final entries = lines
         .map((line) => '${line.product.id}:${line.quantity}')
         .toList()
       ..sort();
-    return '$storeId|$customerId|${entries.join(',')}';
+    return [
+      customerId,
+      entries.join(','),
+      details.deliveryType,
+      details.name.trim(),
+      details.phone.trim(),
+      details.address.trim(),
+      details.city.trim(),
+      details.state.trim(),
+      details.postalCode.trim(),
+      details.notes?.trim() ?? '',
+    ].join('|');
   }
 }
 

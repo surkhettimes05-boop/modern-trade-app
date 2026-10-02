@@ -1,5 +1,5 @@
 name: modern_trade_flutter
-description: Nova Mart customer shopping app for the StoreSync Nepal pilot.
+description: PASALHO customer shopping app.
 publish_to: "none"
 version: 1.0.0+1
 
@@ -12,6 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_secure_storage: ^9.2.4
   http: ^1.3.0
+  web: ^1.1.1
   intl: ^0.20.2
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.1
@@ -23,3 +24,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/products/
+    - assets/images/storefront/

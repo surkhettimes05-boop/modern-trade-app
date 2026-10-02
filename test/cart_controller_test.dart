@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 const available = Product(
     id: 'p1',
     name: 'Rice',
-    brand: 'NOVA',
+    brand: 'PASALHO',
     category: 'Food',
     description: '',
     imageUrl: '',
@@ -16,7 +16,7 @@ const available = Product(
 const unavailable = Product(
     id: 'p2',
     name: 'Blocked',
-    brand: 'NOVA',
+    brand: 'PASALHO',
     category: 'Food',
     description: '',
     imageUrl: '',

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../demo/demo_product_assets.dart';
 import '../main.dart';
 import '../models/models.dart';
 import '../screens/product_screen.dart';
 
-class NovaLogo extends StatelessWidget {
-  const NovaLogo({super.key, this.compact = false});
+class PasalhoLogo extends StatelessWidget {
+  const PasalhoLogo({super.key, this.compact = false});
   final bool compact;
 
   @override
@@ -22,7 +23,7 @@ class NovaLogo extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              'N',
+              'P',
               style: TextStyle(
                 color: AppColors.lime,
                 fontSize: compact ? 18 : 21,
@@ -31,113 +32,17 @@ class NovaLogo extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'NOVA',
-                style: TextStyle(
-                  height: .9,
-                  letterSpacing: -.5,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                'MART',
-                style: TextStyle(
-                  height: .9,
-                  letterSpacing: -.5,
-                  color: AppColors.brand,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
+          const Text(
+            'pasalho.',
+            style: TextStyle(
+              color: AppColors.brand,
+              fontSize: 22,
+              letterSpacing: -.5,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       );
-}
-
-class StoreSelector extends StatelessWidget {
-  const StoreSelector({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final state = AppScope.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: () => showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        builder: (sheetContext) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Choose your store',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        )),
-                const SizedBox(height: 10),
-                ...state.stores.map(
-                  (store) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(store.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text(
-                        [
-                          if (store.temporarilyClosed) 'TEMPORARILY CLOSED',
-                          if (store.address != null) store.address!,
-                        ].join(' · '),
-                        style: TextStyle(
-                            color: store.temporarilyClosed
-                                ? AppColors.danger
-                                : null)),
-                    leading: Icon(
-                      state.selectedStore?.id == store.id
-                          ? Icons.check_circle
-                          : Icons.circle_outlined,
-                      color: AppColors.brand,
-                    ),
-                    onTap: store.temporarilyClosed
-                        ? null
-                        : () async {
-                            await state.selectStore(store);
-                            if (sheetContext.mounted) {
-                              Navigator.pop(sheetContext);
-                            }
-                          },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.location_on_outlined, size: 19),
-            const SizedBox(width: 3),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 120),
-              child: Text(
-                state.selectedStore?.name ?? 'Choose store',
-                overflow: TextOverflow.ellipsis,
-                style:
-                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-            ),
-            const Icon(Icons.expand_more, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class SectionHeading extends StatelessWidget {
@@ -173,8 +78,9 @@ class SectionHeading extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -.7,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -.6,
                       ),
                 ),
               ],
@@ -188,129 +94,175 @@ class SectionHeading extends StatelessWidget {
 class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.product});
   final Product product;
-
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final quantity = state.cartController.quantities[product.id] ?? 0;
+    void detail() => Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+            builder: (_) => ProductScreen(product: product)));
     return Card(
-      clipBehavior: Clip.antiAlias,
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute<void>(
-            builder: (_) => ProductScreen(product: product),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ProductImage(url: product.imageUrl),
-                  if (product.discountPercent > 0)
-                    Positioned(
-                      left: 8,
-                      top: 8,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFB2382B),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 4,
-                          ),
-                          child: Text(
-                            'Save ${product.discountPercent}%',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(11),
+        clipBehavior: Clip.antiAlias,
+        margin: EdgeInsets.zero,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+              child: InkWell(
+                  onTap: detail,
+                  child: Stack(fit: StackFit.expand, children: [
+                    Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: ProductImage(
+                            url: DemoProductAssets.imageFor(product))),
+                    if (product.discountPercent > 0)
+                      Positioned(
+                          left: 8,
+                          top: 8,
+                          child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 4),
+                              decoration: BoxDecoration(
+                                  color: AppColors.lime,
+                                  borderRadius: BorderRadius.circular(5)),
+                              child: Text('${product.discountPercent}% OFF',
+                                  style: const TextStyle(
+                                      color: AppColors.brand,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800))))
+                  ]))),
+          Padding(
+              padding: const EdgeInsets.fromLTRB(12, 5, 12, 12),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.brand.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 9,
-                      letterSpacing: .7,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    product.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      height: 1.2,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  Text(
-                    formatNpr(product.price),
-                    style: const TextStyle(
-                      color: AppColors.brand,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 39,
-                    child: ElevatedButton.icon(
-                      onPressed: product.isAvailable
-                          ? () {
-                              state.addToCart(product);
-                              ScaffoldMessenger.of(context)
-                                ..hideCurrentSnackBar()
-                                ..showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('${product.name} added to cart'),
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-                            }
-                          : null,
-                      icon: const Icon(Icons.add, size: 17),
-                      label: Text(product.isAvailable ? 'Add' : 'Unavailable'),
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 39),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        product.brand.isEmpty
+                            ? 'EVERYDAY ESSENTIAL'
+                            : product.brand.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 8,
+                            color: AppColors.muted,
+                            letterSpacing: .5)),
+                    const SizedBox(height: 5),
+                    SizedBox(
+                        height: 36,
+                        child: InkWell(
+                            onTap: detail,
+                            child: Text(product.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    height: 1.4,
+                                    fontWeight: FontWeight.w700)))),
+                    const SizedBox(height: 5),
+                    Text(product.unit ?? 'Standard pack',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 10, color: AppColors.muted)),
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                            Text(formatNpr(product.price),
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w800)),
+                            if (product.discountPercent > 0)
+                              Text(formatNpr(product.originalPrice!),
+                                  style: const TextStyle(
+                                      fontSize: 9,
+                                      color: AppColors.muted,
+                                      decoration: TextDecoration.lineThrough))
+                          ])),
+                      if (quantity > 0)
+                        QuantityControl(
+                            product: product, quantity: quantity, compact: true)
+                      else
+                        SizedBox(
+                            height: 34,
+                            child: ElevatedButton(
+                                onPressed: product.canOrder
+                                    ? () => state.addToCart(product)
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(58, 34),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10),
+                                    backgroundColor: AppColors.lime,
+                                    foregroundColor: AppColors.brand,
+                                    side: const BorderSide(
+                                        color: AppColors.brand),
+                                    textStyle: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800)),
+                                child: Text(
+                                    product.canOrder ? 'ADD' : 'Unavailable')))
+                    ])
+                  ]))
+        ]));
   }
 }
 
+class QuantityControl extends StatelessWidget {
+  const QuantityControl(
+      {super.key,
+      required this.product,
+      required this.quantity,
+      this.compact = false});
+  final Product product;
+  final int quantity;
+  final bool compact;
+  @override
+  Widget build(BuildContext context) => Container(
+      height: compact ? 34 : 40,
+      decoration: BoxDecoration(
+          color: AppColors.brand, borderRadius: BorderRadius.circular(8)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox(
+            width: compact ? 26 : 38,
+            child: IconButton(
+                tooltip: 'Decrease quantity',
+                padding: EdgeInsets.zero,
+                onPressed: () =>
+                    AppScope.of(context).setCartQuantity(product, quantity - 1),
+                icon: Icon(Icons.remove,
+                    size: compact ? 14 : 18, color: Colors.white))),
+        Text('$quantity',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: compact ? 11 : 13,
+                fontWeight: FontWeight.w700)),
+        SizedBox(
+            width: compact ? 26 : 38,
+            child: IconButton(
+                tooltip: 'Increase quantity',
+                padding: EdgeInsets.zero,
+                onPressed: () =>
+                    AppScope.of(context).setCartQuantity(product, quantity + 1),
+                icon: Icon(Icons.add,
+                    size: compact ? 14 : 18, color: Colors.white)))
+      ]));
+}
+
+class ScreenFrame extends StatelessWidget {
+  const ScreenFrame({super.key, required this.child, this.maxWidth = 1200});
+  final Widget child;
+  final double maxWidth;
+  @override
+  Widget build(BuildContext context) => Align(
+      heightFactor: 1,
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth), child: child));
+}
+
 class ProductImage extends StatelessWidget {
-  const ProductImage({super.key, required this.url, this.fit = BoxFit.cover});
+  const ProductImage({super.key, required this.url, this.fit = BoxFit.contain});
   final String url;
   final BoxFit fit;
 
@@ -325,20 +277,35 @@ class ProductImage extends StatelessWidget {
         ),
       );
     }
+    final cacheWidth = (MediaQuery.sizeOf(context).width *
+            MediaQuery.devicePixelRatioOf(context))
+        .clamp(240, 1200)
+        .round();
+    Widget error(BuildContext _, Object __, StackTrace? ___) =>
+        const ColoredBox(
+          color: AppColors.cream,
+          child: Center(
+            child: Icon(Icons.inventory_2_outlined,
+                color: AppColors.muted, size: 42),
+          ),
+        );
+    if (url.startsWith('assets/')) {
+      return ColoredBox(
+        color: AppColors.cream,
+        child: Image.asset(
+          url,
+          fit: fit,
+          cacheWidth: cacheWidth,
+          filterQuality: FilterQuality.high,
+          errorBuilder: error,
+        ),
+      );
+    }
     return Image.network(
       url,
       fit: fit,
-      cacheWidth: (MediaQuery.sizeOf(context).width *
-              MediaQuery.devicePixelRatioOf(context))
-          .clamp(240, 1200)
-          .round(),
-      errorBuilder: (_, __, ___) => const ColoredBox(
-        color: AppColors.cream,
-        child: Center(
-          child: Icon(Icons.inventory_2_outlined,
-              color: AppColors.muted, size: 42),
-        ),
-      ),
+      cacheWidth: cacheWidth,
+      errorBuilder: error,
       loadingBuilder: (context, child, progress) => progress == null
           ? child
           : const ColoredBox(

@@ -1,4 +1,39 @@
 workflows:
+  pasalho-investor-demo:
+    name: PASALHO Investor Demo
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      java: 17
+      groups:
+        - pasalho_android_signing
+      vars:
+        ANDROID_KEYSTORE_PATH: /tmp/pasalho-demo.jks
+    scripts:
+      - name: Validate demo signing configuration
+        script: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "$(printenv "$name")" ]; then
+              echo "Missing required Codemagic signing secret: $name"
+              exit 1
+            fi
+          done
+      - name: Restore signing keystore
+        script: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+      - name: Configure Android SDK
+        script: echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Install Flutter dependencies
+        script: flutter pub get
+      - name: Analyze source
+        script: flutter analyze
+      - name: Run tests
+        script: flutter test
+      - name: Build offline investor demo APK
+        script: flutter build apk --release --target=lib/main.dart --dart-define=APP_ENV=demo
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+
   android-test-apk:
     name: Android test APK
     instance_type: mac_mini_m2
@@ -19,32 +54,36 @@ workflows:
       - name: Build downloadable APK
         script: |
           flutter build apk --debug \
-            --dart-define=API_BASE_URL="${API_BASE_URL:-https://storesync-backend-dg8z.onrender.com}"
+            --dart-define=APP_ENV=development \
+            --dart-define=API_BASE_URL="${API_BASE_URL:-http://10.0.2.2:3001}"
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
       - flutter_drive.log
 
   android-release:
-    name: NOVA MART Android release
+    name: PASALHO Android release
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       flutter: stable
       java: 17
       groups:
-        - nova_mart_android_signing
+        - pasalho_android_signing
       vars:
-        API_BASE_URL: https://storesync-backend-dg8z.onrender.com
-        ANDROID_KEYSTORE_PATH: /tmp/nova-mart-release.jks
+        ANDROID_KEYSTORE_PATH: /tmp/pasalho-release.jks
     scripts:
       - name: Validate release configuration
         script: |
-          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+          for name in API_BASE_URL ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
             if [ -z "$(printenv "$name")" ]; then
               echo "Missing required Codemagic secret: $name"
               exit 1
             fi
           done
+          case "$API_BASE_URL" in
+            https://*) ;;
+            *) echo "API_BASE_URL must be an HTTPS URL"; exit 1 ;;
+          esac
       - name: Restore signing keystore
         script: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
       - name: Configure Android SDK
@@ -58,12 +97,39 @@ workflows:
         script: flutter analyze
       - name: Run tests
         script: flutter test
-      - name: Build signed app bundle
+      - name: Diagnose Flutter release arguments
         script: |
-          flutter build appbundle --release \
-            --dart-define=API_BASE_URL="$API_BASE_URL" \
-            --dart-define=SUPPORT_PHONE="$SUPPORT_PHONE" \
-            --dart-define=PRIVACY_POLICY_URL="$PRIVACY_POLICY_URL" \
-            --dart-define=TERMS_URL="$TERMS_URL"
+          #!/usr/bin/env bash
+          set -euo pipefail
+          echo "Flutter executable: $(command -v flutter)"
+          type flutter || true
+          flutter --version
+          flutter config --list
+          for name in API_BASE_URL ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD SUPPORT_PHONE PRIVACY_POLICY_URL TERMS_URL; do
+            if [ -n "${!name:-}" ]; then
+              echo "$name=SET"
+            else
+              echo "$name=UNSET"
+            fi
+          done
+          echo "API_BASE_URL length: ${#API_BASE_URL}"
+          echo "APP_ENV: production"
+          echo "Release args: build apk --release --target=lib/main.dart --dart-define=APP_ENV=production --dart-define=API_BASE_URL=<redacted> --dart-define=SUPPORT_PHONE=<redacted-or-empty> --dart-define=PRIVACY_POLICY_URL=<redacted-or-empty> --dart-define=TERMS_URL=<redacted-or-empty>"
+      - name: Build signed release APK
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          args=(
+            build
+            apk
+            --release
+            --target=lib/main.dart
+            --dart-define=APP_ENV=production
+            "--dart-define=API_BASE_URL=$API_BASE_URL"
+            "--dart-define=SUPPORT_PHONE=${SUPPORT_PHONE:-}"
+            "--dart-define=PRIVACY_POLICY_URL=${PRIVACY_POLICY_URL:-}"
+            "--dart-define=TERMS_URL=${TERMS_URL:-}"
+          )
+          flutter "${args[@]}"
     artifacts:
-      - build/app/outputs/bundle/release/app-release.aab
+      - build/app/outputs/flutter-apk/app-release.apk

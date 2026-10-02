@@ -2,11 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:modern_trade_flutter/models/models.dart';
 
 void main() {
-  test('maps StoreSync product fields', () {
+  test('maps PASALHO product fields', () {
     final product = Product.fromJson({
       'id': 'product-id',
       'name': 'Basmati Rice',
-      'brand': 'NOVA MART',
+      'brand': 'PASALHO',
       'category_name': 'Rice',
       'price': '799',
       'original_price': 999,

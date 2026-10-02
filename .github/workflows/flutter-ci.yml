@@ -1,0 +1,38 @@
+name: Flutter V1 CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - codex/sync-production-flutter
+      - release/v1-flutter-reconcile
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter analyze
+      - name: Repository contract tests
+        run: flutter test
+      - name: Demo compile contract
+        run: flutter test --dart-define=APP_ENV=demo test/demo_mode_compile_test.dart
+      - name: Generate disposable CI release signing key
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/ci-release.jks" -storepass ci-release-only -keypass ci-release-only -alias ci-release -keyalg RSA -validity 1 -dname "CN=CI Release,O=Pasalho,C=NP"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/ci-release.jks" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=ci-release-only" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=ci-release" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD=ci-release-only" >> "$GITHUB_ENV"
+      - name: Validate production Android release bundle
+        run: flutter build appbundle --release --dart-define=APP_ENV=production --dart-define=API_BASE_URL=https://api.ci.invalid
