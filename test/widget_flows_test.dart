@@ -6,6 +6,7 @@ import 'package:modern_trade_flutter/screens/cart_screen.dart';
 import 'package:modern_trade_flutter/screens/checkout_screen.dart';
 import 'package:modern_trade_flutter/screens/app_shell.dart';
 import 'package:modern_trade_flutter/screens/login_screen.dart';
+import 'package:modern_trade_flutter/screens/product_screen.dart';
 import 'package:modern_trade_flutter/state/app_state.dart';
 import 'package:modern_trade_flutter/widgets/common.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -104,6 +105,21 @@ void main() {
     expect(find.text('Welcome back'), findsOneWidget);
   });
 
+  testWidgets('product details stay visible above basket actions on a narrow phone', (tester) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = AppState()..products = const [widgetProduct];
+    await tester.pumpWidget(scoped(state, const ProductScreen(product: widgetProduct)));
+    await tester.pumpAndSettle();
+    expect(find.text('Rice').hitTestable(), findsOneWidget);
+    await tester.tap(find.text('Add to cart'));
+    await tester.pumpAndSettle();
+    expect(state.cartCount, 1);
+    expect(find.text('View basket').hitTestable(), findsOneWidget);
+  });
+
   testWidgets('checkout only exposes central-warehouse delivery',
       (tester) async {
     final state = AppState()
@@ -111,6 +127,8 @@ void main() {
       ..customer = const Customer(id: 'customer');
     await state.addToCart(widgetProduct);
     await tester.pumpWidget(scoped(state, const CheckoutScreen()));
+    await tester.scrollUntilVisible(find.text('Street, ward and locality'), 200,
+        scrollable: find.byType(Scrollable).first);
     expect(find.text('Street, ward and locality'), findsOneWidget);
     expect(find.text('Pickup'), findsNothing);
     expect(find.text('Central warehouse delivery'), findsNothing);

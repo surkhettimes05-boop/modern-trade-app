@@ -169,7 +169,8 @@ void main() {
       ..products = const [stateProduct]
       ..customer = const Customer(id: 'c');
     await state.addToCart(stateProduct);
-    await expectLater(_checkout(state), throwsA(isA<ApiException>()));
+    await expectLater(_checkout(state, deliveryType: 'DELIVERY'),
+        throwsA(isA<ApiException>()));
     expect(state.cart, hasLength(1));
   });
 
@@ -184,7 +185,7 @@ void main() {
       ..products = const [stateProduct]
       ..customer = const Customer(id: 'c');
     await state.addToCart(stateProduct);
-    expect((await _checkout(state)).id, 'order');
+    expect((await _checkout(state, deliveryType: 'DELIVERY')).id, 'order');
     expect(state.cart, isEmpty);
   });
 

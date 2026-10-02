@@ -43,7 +43,7 @@ class CheckoutRepository {
       throw const ApiException('Only central-warehouse delivery is available.');
     }
     for (final line in lines) {
-      if (!line.product.isAvailable ||
+      if (!line.product.canOrder ||
           line.quantity < 1 ||
           line.quantity > AppConfig.maxCartQuantity) {
         throw const ApiException(
@@ -60,8 +60,7 @@ class CheckoutRepository {
     var activeAttempt = attempt;
 
     if (activeAttempt.cartId == null) {
-      final response =
-          await api.post('/api/shopping-cart', body: const {});
+      final response = await api.post('/api/shopping-cart', body: const {});
       final cartId = response is Map ? response['id']?.toString() : null;
       if (cartId == null || cartId.isEmpty) {
         throw const ApiException(
@@ -119,8 +118,8 @@ class CheckoutRepository {
       prefs.setString(_attemptKey, jsonEncode(attempt.toJson()));
   String _newKey(String customerId) =>
       'mobile-$customerId-${DateTime.now().microsecondsSinceEpoch}-${List.generate(12, (_) => _random.nextInt(16).toRadixString(16)).join()}';
-  String _fingerprint(String customerId, List<CartLine> lines,
-      CheckoutDetails details) {
+  String _fingerprint(
+      String customerId, List<CartLine> lines, CheckoutDetails details) {
     final entries = lines
         .map((line) => '${line.product.id}:${line.quantity}')
         .toList()

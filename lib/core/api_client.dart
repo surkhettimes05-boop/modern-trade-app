@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'http_transport.dart'
+    if (dart.library.js_interop) 'http_transport_web.dart' as transport;
 
 enum ApiErrorKind {
   authentication,
@@ -63,7 +65,7 @@ class ApiClient {
       http.Client? client,
       SecureSessionStore? sessionStore,
       this.onSessionExpired})
-      : _client = client ?? http.Client(),
+      : _client = client ?? transport.createHttpClient(),
         _store = sessionStore ?? const FlutterSecureSessionStore();
 
   final String baseUrl;
@@ -74,7 +76,9 @@ class ApiClient {
   String? _csrfToken;
   bool _handlingUnauthorized = false;
 
-  bool get hasSession => _sessionToken?.isNotEmpty == true;
+  bool get hasSession =>
+      _sessionToken?.isNotEmpty == true ||
+      transport.browserCsrfToken()?.isNotEmpty == true;
 
   Future<void> restoreSession() async {
     _sessionToken = await _store.read('customer_session');
@@ -93,12 +97,13 @@ class ApiClient {
       'accept': 'application/json',
       'content-type': 'application/json'
     };
-    if (_sessionToken != null) {
+    if (!kIsWeb && _sessionToken != null) {
       final cookies = <String>['customer_session=$_sessionToken'];
       if (_csrfToken != null) cookies.add('customer_csrf=$_csrfToken');
       headers['cookie'] = cookies.join('; ');
     }
-    if (mutation && _csrfToken != null) headers['x-csrf-token'] = _csrfToken!;
+    final csrf = kIsWeb ? transport.browserCsrfToken() : _csrfToken;
+    if (mutation && csrf != null) headers['x-csrf-token'] = csrf;
     return headers;
   }
 

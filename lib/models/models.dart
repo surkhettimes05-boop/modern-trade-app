@@ -43,6 +43,10 @@ class Product {
   /// Unknown or future backend states must fail closed.
   bool get isAvailable =>
       const {'AVAILABLE'}.contains(availability.trim().toUpperCase());
+
+  /// The catalog explicitly allows these products to be checked by checkout.
+  bool get canOrder => const {'AVAILABLE', 'CHECK_AT_CHECKOUT'}
+      .contains(availability.trim().toUpperCase());
   int get priceMinor => (price * 100).round();
   int? get originalPriceMinor =>
       originalPrice == null ? null : (originalPrice! * 100).round();

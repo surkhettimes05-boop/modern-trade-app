@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 abstract final class AppColors {
   static const ink = Color(0xFF17221B);
   static const muted = Color(0xFF667069);
-  static const brand = Color(0xFF075D43);
-  static const brandLight = Color(0xFF0B7554);
-  static const lime = Color(0xFFD9F58B);
-  static const cream = Color(0xFFF6F3EB);
-  static const warm = Color(0xFFEEE9DF);
-  static const line = Color(0xFFDEDFD9);
+  static const brand = Color(0xFF13823B);
+  static const brandLight = Color(0xFF10652F);
+  static const lime = Color(0xFFE5F4D9);
+  static const cream = Color(0xFFF7F9F5);
+  static const warm = Color(0xFFF0F5EC);
+  static const line = Color(0xFFE5EBE1);
   static const danger = Color(0xFFC83D2E);
 }
 
@@ -23,8 +23,30 @@ ThemeData buildAppTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: Colors.white,
+    scaffoldBackgroundColor: AppColors.cream,
     fontFamily: 'Arial',
+    textTheme: const TextTheme(
+      headlineSmall: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: AppColors.ink,
+          letterSpacing: -.6),
+      titleLarge: TextStyle(
+          fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.ink),
+      titleMedium: TextStyle(
+          fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.ink),
+      bodyMedium: TextStyle(fontSize: 13, color: AppColors.ink),
+      bodySmall: TextStyle(fontSize: 11, color: AppColors.muted),
+    ),
+    chipTheme: ChipThemeData(
+        backgroundColor: AppColors.cream,
+        selectedColor: AppColors.lime,
+        side: BorderSide.none,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+    snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.ink,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.white,
       foregroundColor: AppColors.ink,
@@ -43,7 +65,7 @@ ThemeData buildAppTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: AppColors.cream,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.line),
@@ -79,6 +101,7 @@ ThemeData buildAppTheme() {
     navigationBarTheme: const NavigationBarThemeData(
       backgroundColor: Colors.white,
       indicatorColor: AppColors.lime,
+      height: 68,
       labelTextStyle: WidgetStatePropertyAll(
         TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
       ),

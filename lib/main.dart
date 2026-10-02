@@ -24,6 +24,12 @@ class PasalhoApp extends StatelessWidget {
           title: 'PASALHO',
           debugShowCheckedModeBanner: false,
           theme: buildAppTheme(),
+          builder: (context, child) => ColoredBox(
+              color: AppColors.cream,
+              child: Center(
+                  child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1200),
+                      child: child!))),
           home: const AppShell(),
         ),
       );
