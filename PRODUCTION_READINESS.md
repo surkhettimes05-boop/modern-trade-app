@@ -39,3 +39,10 @@ For demo versus Twilio and exact Render/Vercel setup, use PRODUCTION_READINESS.m
 the website repository. Demo is allowed only on an isolated non-production backend;
 production Twilio requires real Nepal SMS evidence. Electronic payments, returns,
 promotions and offline sync remain disabled.
+
+## CI follow-up — 2026-10-07
+
+Added .github/workflows/flutter-quality.yml to verify this separate app on draft
+pull requests: dependency install, Dart syntax, analysis, tests and debug APK compile.
+It does not deploy the app or use signing/provider secrets. Codemagic remains the
+signed release build gate. Workflow results must be recorded before certification.
