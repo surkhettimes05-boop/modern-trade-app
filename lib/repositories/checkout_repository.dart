@@ -145,8 +145,9 @@ class CheckoutRepository {
       '/api/checkout/service-areas',
       query: {'store_id': storeId},
     );
-    if (result is! List)
+    if (result is! List) {
       throw const ApiException('Could not load delivery areas.');
+    }
     return result.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 

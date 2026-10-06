@@ -61,8 +61,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
     if (_municipalityId == null ||
         _wardId == null ||
-        state.selectedStore == null)
+        state.selectedStore == null) {
       return;
+    }
     try {
       final quote = await state.checkoutRepository.deliveryQuote(
         state.selectedStore!.id,
@@ -72,8 +73,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       if (mounted && request == _quoteRequest) setState(() => _quote = quote);
     } catch (e) {
-      if (mounted && request == _quoteRequest)
+      if (mounted && request == _quoteRequest) {
         setState(() => _error = userMessage(e));
+      }
     }
   }
 

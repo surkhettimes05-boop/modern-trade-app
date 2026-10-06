@@ -93,8 +93,9 @@ void main() {
             keys.add(
               (jsonDecode(request.body) as Map)['idempotency_key'].toString(),
             );
-            if (checkoutCalls++ == 0)
+            if (checkoutCalls++ == 0) {
               throw TimeoutException('uncertain outcome');
+            }
             return jsonResponse({'id': 'order-1'});
           }
           return jsonResponse({});
