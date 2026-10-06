@@ -9,6 +9,8 @@ import 'package:modern_trade_flutter/state/app_state.dart';
 import 'package:modern_trade_flutter/widgets/common.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'test_helpers.dart';
+
 const widgetProduct = Product(
     id: 'p',
     name: 'Rice',
@@ -76,7 +78,7 @@ void main() {
 
   testWidgets('pickup immediately hides delivery address and shows store',
       (tester) async {
-    final state = AppState()
+    final state = AppState(api: testApi((request) async => jsonResponse([])))
       ..products = const [widgetProduct]
       ..selectedStore = const StoreLocation(
           id: 'store', name: 'NOVA MART Thamel', address: 'Thamel')

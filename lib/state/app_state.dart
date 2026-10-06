@@ -18,8 +18,7 @@ const _fallbackProducts = <Product>[
     category: 'Rice',
     categoryId: 'opening-1',
     description: 'Long-grain premium rice for everyday family meals.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=900&q=82',
+    imageUrl: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=900&q=82',
     price: 799,
     originalPrice: 999,
     rating: 4.8,
@@ -35,8 +34,7 @@ const _fallbackProducts = <Product>[
     category: 'Cooking oil & ghee',
     categoryId: 'opening-2',
     description: 'Refined sunflower oil for daily cooking.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=900&q=82',
+    imageUrl: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=900&q=82',
     price: 179,
     originalPrice: 219,
     rating: 4.7,
@@ -52,8 +50,7 @@ const _fallbackProducts = <Product>[
     category: 'Water',
     categoryId: 'opening-3',
     description: 'Purified mineral water for home and on-the-go.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=900&q=82',
+    imageUrl: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=900&q=82',
     price: 25,
     originalPrice: 30,
     rating: 4.6,
@@ -69,8 +66,7 @@ const _fallbackProducts = <Product>[
     category: 'Instant noodles',
     categoryId: 'opening-4',
     description: 'Fast, familiar pantry comfort for busy days.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=900&q=82',
+    imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=900&q=82',
     price: 120,
     rating: 4.7,
     reviewCount: 31,
@@ -85,8 +81,7 @@ const _fallbackProducts = <Product>[
     category: 'Laundry',
     categoryId: 'opening-5',
     description: 'Reliable cleaning power for everyday laundry.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&w=900&q=82',
+    imageUrl: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&w=900&q=82',
     price: 245,
     rating: 4.5,
     reviewCount: 24,
@@ -101,8 +96,7 @@ const _fallbackProducts = <Product>[
     category: 'Hair care',
     categoryId: 'opening-6',
     description: 'Gentle everyday shampoo for the whole household.',
-    imageUrl:
-        'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=82',
+    imageUrl: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=82',
     price: 299,
     rating: 4.4,
     reviewCount: 19,
@@ -113,13 +107,14 @@ const _fallbackProducts = <Product>[
 
 class AppState extends ChangeNotifier {
   AppState({ApiClient? api})
-      : api = api ??
-            ApiClient(
-              baseUrl: const String.fromEnvironment(
-                'API_BASE_URL',
-                defaultValue: 'https://storesync-backend-dg8z.onrender.com',
-              ),
-            ) {
+    : api =
+          api ??
+          ApiClient(
+            baseUrl: const String.fromEnvironment(
+              'API_BASE_URL',
+              defaultValue: 'https://storesync-backend-dg8z.onrender.com',
+            ),
+          ) {
     authRepository = AuthRepository(this.api);
     catalogRepository = CatalogRepository(this.api);
     checkoutRepository = CheckoutRepository(this.api);
@@ -144,8 +139,9 @@ class AppState extends ChangeNotifier {
 
   List<CartLine> get cart => cartController.quantities.entries
       .map((entry) {
-        final product =
-            products.where((item) => item.id == entry.key).firstOrNull;
+        final product = products
+            .where((item) => item.id == entry.key)
+            .firstOrNull;
         return product == null
             ? null
             : CartLine(product: product, quantity: entry.value);
@@ -153,8 +149,10 @@ class AppState extends ChangeNotifier {
       .whereType<CartLine>()
       .toList(growable: false);
 
-  int get cartCount => cartController.quantities.values
-      .fold(0, (sum, quantity) => sum + quantity);
+  int get cartCount => cartController.quantities.values.fold(
+    0,
+    (sum, quantity) => sum + quantity,
+  );
   int get cartSubtotalMinor =>
       cart.fold(0, (sum, line) => sum + line.totalMinor);
   double get cartSubtotal => cartSubtotalMinor / 100;
@@ -171,7 +169,7 @@ class AppState extends ChangeNotifier {
       final savedStore = prefs.getString('selected_store');
       selectedStore =
           stores.where((store) => store.id == savedStore).firstOrNull ??
-              stores.firstOrNull;
+          stores.firstOrNull;
       if (api.hasSession) await validateSession();
     } catch (exception) {
       error = userMessage(exception);
@@ -207,16 +205,20 @@ class AppState extends ChangeNotifier {
 
   List<Product> search(String query, {String? categoryId}) {
     final normalized = query.trim().toLowerCase();
-    return products.where((product) {
-      final categoryMatch = categoryId == null ||
-          product.categoryId == categoryId ||
-          product.category.toLowerCase() == categoryId.toLowerCase();
-      final textMatch = normalized.isEmpty ||
-          '${product.name} ${product.brand} ${product.category}'
-              .toLowerCase()
-              .contains(normalized);
-      return categoryMatch && textMatch;
-    }).toList(growable: false);
+    return products
+        .where((product) {
+          final categoryMatch =
+              categoryId == null ||
+              product.categoryId == categoryId ||
+              product.category.toLowerCase() == categoryId.toLowerCase();
+          final textMatch =
+              normalized.isEmpty ||
+              '${product.name} ${product.brand} ${product.category}'
+                  .toLowerCase()
+                  .contains(normalized);
+          return categoryMatch && textMatch;
+        })
+        .toList(growable: false);
   }
 
   Future<void> selectStore(StoreLocation store) async {
@@ -275,14 +277,16 @@ class AppState extends ChangeNotifier {
     required String name,
     required String phone,
     required String address,
-    required String city,
-    required String state,
+    int? municipalityId,
+    int? wardId,
     required String postalCode,
     String? notes,
   }) async {
     if (customer == null) {
-      throw const ApiException('Please sign in to checkout.',
-          kind: ApiErrorKind.authentication);
+      throw const ApiException(
+        'Please sign in to checkout.',
+        kind: ApiErrorKind.authentication,
+      );
     }
     final store = selectedStore;
     if (store == null || store.id == 'offline-store') {
@@ -294,14 +298,15 @@ class AppState extends ChangeNotifier {
       customer: customer!,
       lines: cart,
       details: CheckoutDetails(
-          deliveryType: deliveryType,
-          name: name,
-          phone: phone,
-          address: address,
-          city: city,
-          state: state,
-          postalCode: postalCode,
-          notes: notes),
+        deliveryType: deliveryType,
+        name: name,
+        phone: phone,
+        address: address,
+        municipalityId: municipalityId,
+        wardId: wardId,
+        postalCode: postalCode,
+        notes: notes,
+      ),
     );
     await clearCart();
     return order;
@@ -335,9 +340,17 @@ const _fallbackCategories = <ProductCategory>[
     skuCount: 25,
   ),
   ProductCategory(
-      id: 'opening-5', name: 'Laundry', slug: 'laundry', skuCount: 25),
+    id: 'opening-5',
+    name: 'Laundry',
+    slug: 'laundry',
+    skuCount: 25,
+  ),
   ProductCategory(
-      id: 'opening-6', name: 'Hair care', slug: 'hair-care', skuCount: 25),
+    id: 'opening-6',
+    name: 'Hair care',
+    slug: 'hair-care',
+    skuCount: 25,
+  ),
 ];
 
 extension _FirstOrNull<T> on Iterable<T> {
