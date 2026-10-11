@@ -21,7 +21,8 @@ void main() {
     var succeeds = true;
     final repo = AuthRepository(testApi((_) async => succeeds
         ? jsonResponse({
-            'customer': {'id': 'customer-1', 'preferred_name': 'Asha'}
+            'customer': {'id': 'customer-1', 'preferred_name': 'Asha'},
+            'session_token': 'test-session'
           })
         : jsonResponse({'error': 'wrong database code'}, 401)));
     expect((await repo.verifyOtp('9812345678', '123456')).id, 'customer-1');
