@@ -8,8 +8,10 @@ import '../core/app_theme.dart';
 import '../core/api_client.dart';
 import '../main.dart';
 import '../models/models.dart';
+import '../repositories/checkout_repository.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
+import 'login_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -32,6 +34,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<List<Map<String, dynamic>>>? _savedAddresses;
   bool _initialized = false;
   bool _addressesLoadedForCustomer = false;
+  bool _deliveryOptionsLoaded = false;
+  bool _deliveryLoading = false;
+  StoreLocation? _store;
+  List<DeliveryServiceArea> _serviceAreas = const [];
+  int? _municipalityId;
+  int? _wardId;
+  int? _draftMunicipalityId;
+  int? _draftWardId;
+  DeliveryQuote? _deliveryQuote;
+  String? _deliveryError;
   static const _draftKey = 'checkout_draft_v1';
 
   @override
@@ -66,6 +78,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _addressesLoadedForCustomer = false;
       _savedAddresses = Future.value(const <Map<String, dynamic>>[]);
     }
+    if (state.isSignedIn && !_deliveryOptionsLoaded && !_deliveryLoading) {
+      unawaited(_loadDeliveryOptions(state));
+    } else if (!state.isSignedIn) {
+      _deliveryOptionsLoaded = false;
+      _deliveryQuote = null;
+    }
   }
 
   Future<void> _restoreDraft(AppState state) async {
@@ -94,7 +112,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (_state.text.isEmpty) _state.text = value('state');
     if (_postalCode.text.isEmpty) _postalCode.text = value('postalCode');
     if (_notes.text.isEmpty) _notes.text = value('notes');
+    _draftMunicipalityId = int.tryParse(value('municipalityId'));
+    _draftWardId = int.tryParse(value('wardId'));
     if (mounted) setState(() {});
+    if (state.isSignedIn && !_deliveryOptionsLoaded && !_deliveryLoading) {
+      unawaited(_loadDeliveryOptions(state));
+    }
   }
 
   void _persistDraft() {
@@ -113,12 +136,113 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'state': _state.text.trim(),
         'postalCode': _postalCode.text.trim(),
         'notes': _notes.text.trim(),
+        'municipalityId': _municipalityId,
+        'wardId': _wardId,
       }),
     );
   }
 
   Future<List<Map<String, dynamic>>> _loadAddresses(AppState state) async {
     return state.loadAddresses();
+  }
+
+  Future<void> _loadDeliveryOptions(AppState state) async {
+    if (_deliveryLoading) return;
+    setState(() {
+      _deliveryLoading = true;
+      _deliveryError = null;
+    });
+    try {
+      final stores = await state.checkoutRepository.loadStores();
+      if (stores.isEmpty) {
+        throw const ApiException('No delivery store is currently available.');
+      }
+      final store = stores.first;
+      final areas =
+          await state.checkoutRepository.loadServiceAreas(store.id);
+      if (areas.isEmpty) {
+        throw const ApiException(
+            'Delivery areas are not configured for this store.');
+      }
+
+      DeliveryServiceArea? selectedArea;
+      for (final area in areas) {
+        if (area.id == _draftMunicipalityId) {
+          selectedArea = area;
+          break;
+        }
+      }
+      selectedArea ??= areas.length == 1 ? areas.first : null;
+
+      DeliveryWard? selectedWard;
+      if (selectedArea != null) {
+        for (final ward in selectedArea.wards) {
+          if (ward.id == _draftWardId) {
+            selectedWard = ward;
+            break;
+          }
+        }
+        selectedWard ??=
+            selectedArea.wards.length == 1 ? selectedArea.wards.first : null;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _store = store;
+        _serviceAreas = areas;
+        _municipalityId = selectedArea?.id;
+        _wardId = selectedWard?.id;
+        _deliveryOptionsLoaded = true;
+        _deliveryLoading = false;
+        if (selectedArea != null) _city.text = selectedArea.name;
+      });
+      _persistDraft();
+      if (_municipalityId != null && _wardId != null) {
+        await _refreshDeliveryQuote(state);
+      }
+    } catch (exception) {
+      if (!mounted) return;
+      setState(() {
+        _deliveryLoading = false;
+        _deliveryError = userMessage(exception);
+      });
+    }
+  }
+
+  DeliveryServiceArea? get _selectedArea {
+    for (final area in _serviceAreas) {
+      if (area.id == _municipalityId) return area;
+    }
+    return null;
+  }
+
+  Future<void> _refreshDeliveryQuote(AppState state) async {
+    final store = _store;
+    final municipalityId = _municipalityId;
+    final wardId = _wardId;
+    if (store == null || municipalityId == null || wardId == null) {
+      if (mounted) setState(() => _deliveryQuote = null);
+      return;
+    }
+    try {
+      final quote = await state.checkoutRepository.loadDeliveryQuote(
+        storeId: store.id,
+        municipalityId: municipalityId,
+        wardId: wardId,
+        orderValue: state.cartSubtotal,
+      );
+      if (!mounted) return;
+      setState(() {
+        _deliveryQuote = quote;
+        _deliveryError = null;
+      });
+    } catch (exception) {
+      if (!mounted) return;
+      setState(() {
+        _deliveryQuote = null;
+        _deliveryError = userMessage(exception);
+      });
+    }
   }
 
   void _useAddress(Map<String, dynamic> address) {
@@ -168,6 +292,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (_busy) return;
     if (!_form.currentState!.validate()) return;
     final state = AppScope.of(context);
+    if (!state.isSignedIn) {
+      setState(() => _error = 'Please sign in to checkout.');
+      return;
+    }
+    if (_store == null || _municipalityId == null || _wardId == null) {
+      setState(() => _error = 'Choose your delivery municipality and ward.');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -177,6 +309,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         deliveryType: 'DELIVERY',
         name: _name.text.trim(),
         phone: _phone.text.trim(),
+        storeId: _store!.id,
+        municipalityId: _municipalityId!,
+        wardId: _wardId!,
         address: _address.text.trim(),
         city: _city.text.trim(),
         state: _state.text.trim(),
@@ -348,8 +483,71 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   validator: _required,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                      labelText: 'Street, ward and locality'),
+                      labelText: 'Street / tole / landmark'),
                 ),
+                const SizedBox(height: 12),
+                if (_deliveryLoading)
+                  const LinearProgressIndicator()
+                else ...[
+                  DropdownButtonFormField<int>(
+                    value: _municipalityId,
+                    decoration:
+                        const InputDecoration(labelText: 'Municipality'),
+                    items: _serviceAreas
+                        .map((area) => DropdownMenuItem<int>(
+                              value: area.id,
+                              child: Text(area.name),
+                            ))
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      final state = AppScope.of(context);
+                      final area = _serviceAreas
+                          .where((item) => item.id == value)
+                          .firstOrNull;
+                      setState(() {
+                        _municipalityId = value;
+                        _wardId = null;
+                        _deliveryQuote = null;
+                        if (area != null) _city.text = area.name;
+                      });
+                      _persistDraft();
+                      unawaited(_refreshDeliveryQuote(state));
+                    },
+                    validator: (value) =>
+                        value == null ? 'Choose municipality' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    value: _wardId,
+                    decoration: const InputDecoration(labelText: 'Ward'),
+                    items: (_selectedArea?.wards ?? const <DeliveryWard>[])
+                        .map((ward) => DropdownMenuItem<int>(
+                              value: ward.id,
+                              child: Text(ward.name.isNotEmpty
+                                  ? ward.name
+                                  : 'Ward ' + ward.wardNumber.toString()),
+                            ))
+                        .toList(growable: false),
+                    onChanged: _municipalityId == null
+                        ? null
+                        : (value) {
+                            final state = AppScope.of(context);
+                            setState(() {
+                              _wardId = value;
+                              _deliveryQuote = null;
+                            });
+                            _persistDraft();
+                            unawaited(_refreshDeliveryQuote(state));
+                          },
+                    validator: (value) =>
+                        value == null ? 'Choose ward' : null,
+                  ),
+                ],
+                if (_deliveryError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_deliveryError!,
+                      style: const TextStyle(color: AppColors.danger)),
+                ],
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -411,10 +609,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         const Divider(height: 28),
                         Row(
                           children: [
-                            const Expanded(child: Text('Estimated subtotal')),
+                            const Expanded(child: Text('Products')),
                             Text(formatNpr(state.cartSubtotal),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w900)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Expanded(child: Text('Delivery')),
+                            Text(
+                              _deliveryQuote == null
+                                  ? 'Choose area'
+                                  : formatNpr(_deliveryQuote!.fee),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+                        Row(
+                          children: [
+                            const Expanded(
+                                child: Text('Total',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w900))),
+                            Text(
+                              formatNpr(state.cartSubtotal +
+                                  (_deliveryQuote?.fee ?? 0)),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900),
+                            ),
                           ],
                         ),
                       ],
@@ -443,14 +669,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             border: Border(top: BorderSide(color: AppColors.line)),
           ),
           child: ElevatedButton(
-            onPressed: _busy ? null : _placeOrder,
+            onPressed: _busy
+                ? null
+                : state.isSignedIn
+                    ? _placeOrder
+                    : () async {
+                        await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const LoginScreen()),
+                        );
+                        if (mounted) setState(() {});
+                      },
             child: _busy
                 ? const SizedBox.square(
                     dimension: 20,
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white),
                   )
-                : const Text('Place COD order'),
+                : Text(state.isSignedIn
+                    ? 'Place COD order'
+                    : 'Sign in to continue'),
           ),
         ),
       ),
