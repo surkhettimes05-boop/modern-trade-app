@@ -501,9 +501,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         .toList(growable: false),
                     onChanged: (value) {
                       final state = AppScope.of(context);
-                      final area = _serviceAreas
-                          .where((item) => item.id == value)
-                          .firstOrNull;
+                      DeliveryServiceArea? area;
+                      for (final item in _serviceAreas) {
+                        if (item.id == value) {
+                          area = item;
+                          break;
+                        }
+                      }
                       setState(() {
                         _municipalityId = value;
                         _wardId = null;
