@@ -39,6 +39,8 @@ void main() {
     final repo = CheckoutRepository(testApi((request) async {
       paths.add(request.url.path);
       if (request.url.path == '/api/shopping-cart') {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['store_id'], details.storeId);
         return jsonResponse({'id': 'cart-1'});
       }
       if (request.url.path == '/api/checkout/cod') {
