@@ -127,9 +127,9 @@ void main() {
       ..customer = const Customer(id: 'customer');
     await state.addToCart(widgetProduct);
     await tester.pumpWidget(scoped(state, const CheckoutScreen()));
-    await tester.scrollUntilVisible(find.text('Street, ward and locality'), 200,
+    await tester.scrollUntilVisible(find.text('Street / tole / landmark'), 200,
         scrollable: find.byType(Scrollable).first);
-    expect(find.text('Street, ward and locality'), findsOneWidget);
+    expect(find.text('Street / tole / landmark'), findsOneWidget);
     expect(find.text('Pickup'), findsNothing);
     expect(find.text('Central warehouse delivery'), findsNothing);
     await tester.scrollUntilVisible(find.text('Cash on delivery'), 250,
