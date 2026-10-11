@@ -23,6 +23,9 @@ const details = CheckoutDetails(
     deliveryType: 'DELIVERY',
     name: 'Asha',
     phone: '9812345678',
+    storeId: 'store',
+    municipalityId: 1,
+    wardId: 5,
     address: 'Ward 1',
     city: 'Kathmandu',
     state: 'Bagmati',
@@ -117,7 +120,12 @@ void main() {
             customer: customer,
             lines: const [CartLine(product: product, quantity: 1)],
             details: const CheckoutDetails(
-                deliveryType: 'PICKUP', name: 'Asha', phone: '9812345678')),
+                deliveryType: 'PICKUP',
+                name: 'Asha',
+                phone: '9812345678',
+                storeId: 'store',
+                municipalityId: 1,
+                wardId: 5)),
         throwsA(isA<ApiException>()));
   });
 
@@ -144,6 +152,9 @@ void main() {
             deliveryType: 'DELIVERY',
             name: 'Asha Changed',
             phone: '9812345678',
+            storeId: 'store',
+            municipalityId: 1,
+            wardId: 5,
             address: 'Ward 1',
             city: 'Kathmandu',
             state: 'Bagmati',
