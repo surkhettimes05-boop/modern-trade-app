@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/app_theme.dart';
 import '../core/api_client.dart';
@@ -27,15 +31,90 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _error;
   Future<List<Map<String, dynamic>>>? _savedAddresses;
   bool _initialized = false;
+  bool _addressesLoadedForCustomer = false;
+  static const _draftKey = 'checkout_draft_v1';
+
+  @override
+  void initState() {
+    super.initState();
+    for (final controller in [
+      _name,
+      _phone,
+      _address,
+      _city,
+      _state,
+      _postalCode,
+      _notes,
+    ]) {
+      controller.addListener(_persistDraft);
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_initialized) return;
-    _initialized = true;
     final state = AppScope.of(context);
-    _name.text = state.customer?.preferredName ?? '';
-    _savedAddresses = _loadAddresses(state);
+    if (!_initialized) {
+      _initialized = true;
+      _name.text = state.customer?.preferredName ?? '';
+      unawaited(_restoreDraft(state));
+    }
+    if (state.isSignedIn && !_addressesLoadedForCustomer) {
+      _addressesLoadedForCustomer = true;
+      _savedAddresses = _loadAddresses(state);
+    } else if (!state.isSignedIn) {
+      _addressesLoadedForCustomer = false;
+      _savedAddresses = Future.value(const <Map<String, dynamic>>[]);
+    }
+  }
+
+  Future<void> _restoreDraft(AppState state) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_draftKey);
+    Map<String, dynamic> draft = const {};
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) draft = Map<String, dynamic>.from(decoded);
+      } catch (_) {
+        await prefs.remove(_draftKey);
+      }
+    }
+    String value(String key) => draft[key]?.toString() ?? '';
+    final verifiedPhone = await state.lastVerifiedPhone();
+    if (!mounted) return;
+    if (_name.text.isEmpty) _name.text = value('name');
+    if (_phone.text.isEmpty) {
+      _phone.text = value('phone').isNotEmpty
+          ? value('phone')
+          : (verifiedPhone ?? '');
+    }
+    if (_address.text.isEmpty) _address.text = value('address');
+    if (_city.text.isEmpty) _city.text = value('city');
+    if (_state.text.isEmpty) _state.text = value('state');
+    if (_postalCode.text.isEmpty) _postalCode.text = value('postalCode');
+    if (_notes.text.isEmpty) _notes.text = value('notes');
+    if (mounted) setState(() {});
+  }
+
+  void _persistDraft() {
+    unawaited(_saveDraft());
+  }
+
+  Future<void> _saveDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _draftKey,
+      jsonEncode({
+        'name': _name.text.trim(),
+        'phone': _phone.text.trim(),
+        'address': _address.text.trim(),
+        'city': _city.text.trim(),
+        'state': _state.text.trim(),
+        'postalCode': _postalCode.text.trim(),
+        'notes': _notes.text.trim(),
+      }),
+    );
   }
 
   Future<List<Map<String, dynamic>>> _loadAddresses(AppState state) async {
