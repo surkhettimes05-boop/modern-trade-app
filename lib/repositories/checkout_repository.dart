@@ -48,7 +48,7 @@ class DeliveryWard {
         id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
         wardNumber: int.tryParse(json['ward_number']?.toString() ?? '') ?? 0,
         name: json['name_en']?.toString() ??
-            ('Ward ' + (json['ward_number']?.toString() ?? '')),
+            'Ward ${json['ward_number']?.toString() ?? ''}',
       );
 }
 
