@@ -97,6 +97,9 @@ class ApiClient {
       'accept': 'application/json',
       'content-type': 'application/json'
     };
+    if (_sessionToken != null && _sessionToken!.isNotEmpty) {
+      headers['authorization'] = 'Bearer $_sessionToken';
+    }
     if (!kIsWeb && _sessionToken != null) {
       final cookies = <String>['customer_session=$_sessionToken'];
       if (_csrfToken != null) cookies.add('customer_csrf=$_csrfToken');
@@ -213,6 +216,17 @@ class ApiClient {
           statusCode: response.statusCode, kind: kind, diagnostic: diagnostic);
     }
     return data;
+  }
+
+  Future<void> adoptSession(String sessionToken, {String? csrfToken}) async {
+    _sessionToken = sessionToken;
+    _csrfToken = csrfToken;
+    await _store.write('customer_session', sessionToken);
+    if (csrfToken != null && csrfToken.isNotEmpty) {
+      await _store.write('customer_csrf', csrfToken);
+    } else {
+      await _store.delete('customer_csrf');
+    }
   }
 
   Future<void> clearSession() async {
