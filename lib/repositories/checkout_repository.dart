@@ -8,23 +8,94 @@ import '../core/app_config.dart';
 import '../models/models.dart';
 
 class CheckoutDetails {
-  const CheckoutDetails(
-      {required this.deliveryType,
-      required this.name,
-      required this.phone,
-      this.address = '',
-      this.city = '',
-      this.state = '',
-      this.postalCode = '',
-      this.notes});
+  const CheckoutDetails({
+    required this.deliveryType,
+    required this.name,
+    required this.phone,
+    required this.storeId,
+    required this.municipalityId,
+    required this.wardId,
+    this.address = '',
+    this.city = '',
+    this.state = '',
+    this.postalCode = '',
+    this.notes,
+  });
   final String deliveryType;
   final String name;
   final String phone;
+  final String storeId;
+  final int municipalityId;
+  final int wardId;
   final String address;
   final String city;
   final String state;
   final String postalCode;
   final String? notes;
+}
+
+class DeliveryWard {
+  const DeliveryWard({
+    required this.id,
+    required this.wardNumber,
+    required this.name,
+  });
+  final int id;
+  final int wardNumber;
+  final String name;
+
+  factory DeliveryWard.fromJson(Map<String, dynamic> json) => DeliveryWard(
+        id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+        wardNumber: int.tryParse(json['ward_number']?.toString() ?? '') ?? 0,
+        name: json['name_en']?.toString() ??
+            ('Ward ' + (json['ward_number']?.toString() ?? '')),
+      );
+}
+
+class DeliveryServiceArea {
+  const DeliveryServiceArea({
+    required this.id,
+    required this.name,
+    required this.wards,
+  });
+  final int id;
+  final String name;
+  final List<DeliveryWard> wards;
+
+  factory DeliveryServiceArea.fromJson(Map<String, dynamic> json) {
+    final rawWards = json['wards'];
+    return DeliveryServiceArea(
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      name: json['name_en']?.toString() ?? 'Service area',
+      wards: rawWards is List
+          ? rawWards
+              .whereType<Map>()
+              .map((row) =>
+                  DeliveryWard.fromJson(Map<String, dynamic>.from(row)))
+              .where((ward) => ward.id > 0)
+              .toList(growable: false)
+          : const [],
+    );
+  }
+}
+
+class DeliveryQuote {
+  const DeliveryQuote({
+    required this.fee,
+    required this.estimatedHours,
+    this.zoneName,
+  });
+  final double fee;
+  final int estimatedHours;
+  final String? zoneName;
+
+  factory DeliveryQuote.fromJson(Map<String, dynamic> json) => DeliveryQuote(
+        fee: double.tryParse(json['delivery_fee']?.toString() ?? '') ?? 0,
+        estimatedHours:
+            int.tryParse(json['estimated_delivery_hours']?.toString() ?? '') ??
+                0,
+        zoneName: json['zone_name']?.toString(),
+      );
 }
 
 class CheckoutRepository {
@@ -33,6 +104,46 @@ class CheckoutRepository {
   final ApiClient api;
   final Random _random;
   static const _attemptKey = 'checkout_attempt_v1';
+
+  Future<List<StoreLocation>> loadStores() async {
+    final response = await api.get('/api/public/stores');
+    final rows = response is List ? response : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) => StoreLocation.fromJson(Map<String, dynamic>.from(row)))
+        .where((store) => store.id.isNotEmpty && !store.temporarilyClosed)
+        .toList(growable: false);
+  }
+
+  Future<List<DeliveryServiceArea>> loadServiceAreas(String storeId) async {
+    final response = await api.get('/api/checkout/service-areas',
+        query: {'store_id': storeId});
+    final rows = response is List ? response : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) =>
+            DeliveryServiceArea.fromJson(Map<String, dynamic>.from(row)))
+        .where((area) => area.id > 0 && area.wards.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<DeliveryQuote> loadDeliveryQuote({
+    required String storeId,
+    required int municipalityId,
+    required int wardId,
+    required double orderValue,
+  }) async {
+    final response = await api.post('/api/checkout/delivery-quote', body: {
+      'store_id': storeId,
+      'municipality_id': municipalityId,
+      'ward_id': wardId,
+      'order_value': orderValue,
+    });
+    if (response is! Map || response['serviceable'] != true) {
+      throw const ApiException('This address is not currently serviceable.');
+    }
+    return DeliveryQuote.fromJson(Map<String, dynamic>.from(response));
+  }
 
   Future<CustomerOrder> checkout(
       {required Customer customer,
@@ -85,13 +196,14 @@ class CheckoutRepository {
     final delivery = details.deliveryType == 'DELIVERY';
     final result = await api.post('/api/checkout/cod', body: {
       'cart_id': activeAttempt.cartId,
+      'store_id': details.storeId,
       'idempotency_key': activeAttempt.key,
       'delivery_type': details.deliveryType,
       'shipping_name': details.name,
       'shipping_phone': details.phone,
       if (delivery) 'shipping_address': details.address,
-      if (delivery) 'shipping_city': details.city,
-      if (delivery) 'shipping_state': details.state,
+      if (delivery) 'shipping_municipality_id': details.municipalityId,
+      if (delivery) 'shipping_ward_id': details.wardId,
       if (delivery) 'shipping_postal_code': details.postalCode,
       if (delivery) 'shipping_country': 'NP',
       if (details.notes?.trim().isNotEmpty == true)
@@ -128,6 +240,9 @@ class CheckoutRepository {
       customerId,
       entries.join(','),
       details.deliveryType,
+      details.storeId,
+      details.municipalityId.toString(),
+      details.wardId.toString(),
       details.name.trim(),
       details.phone.trim(),
       details.address.trim(),
