@@ -12,13 +12,24 @@ class AuthRepository {
   }
 
   Future<Customer> verifyOtp(String phone, String code) async {
-    final response = await api.post('/api/auth/otp/verify',
-        body: {'phone': phone, 'otp_code': code, 'purpose': 'LOGIN'});
+    final response = await api.post('/api/auth/otp/verify', body: {
+      'phone': phone,
+      'otp_code': code,
+      'purpose': 'LOGIN',
+      'client': 'APP',
+    });
     if (response is! Map || response['customer'] is! Map) {
       throw const ApiException(
           'We could not sign you in. Please request a new code.',
           kind: ApiErrorKind.invalidResponse);
     }
+    final sessionToken = response['session_token']?.toString();
+    if (sessionToken == null || sessionToken.isEmpty) {
+      throw const ApiException(
+          'We could not keep you signed in. Please try again.',
+          kind: ApiErrorKind.invalidResponse);
+    }
+    await api.adoptSession(sessionToken);
     return Customer.fromJson(
         Map<String, dynamic>.from(response['customer'] as Map));
   }
