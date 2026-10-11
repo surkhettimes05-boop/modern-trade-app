@@ -43,6 +43,14 @@ void main() {
         expect(body['store_id'], details.storeId);
         return jsonResponse({'id': 'cart-1'});
       }
+      if (request.url.path == '/api/shopping-cart/cart-1/items') {
+        expect(request.method, 'PUT');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['items'], [
+          {'product_id': product.id, 'quantity': 1}
+        ]);
+        return jsonResponse({'success': true});
+      }
       if (request.url.path == '/api/checkout/cod') {
         return jsonResponse({'id': 'order-1', 'total': 799});
       }
@@ -60,7 +68,7 @@ void main() {
     ]);
     expect(
         (await SharedPreferences.getInstance())
-            .getString('checkout_attempt_v1'),
+            .getString('checkout_attempt_v2'),
         isNull);
   });
 
@@ -111,7 +119,7 @@ void main() {
         throwsA(isA<ApiException>()));
     expect(
         (await SharedPreferences.getInstance())
-            .getString('checkout_attempt_v1'),
+            .getString('checkout_attempt_v2'),
         isNotNull);
   });
 
