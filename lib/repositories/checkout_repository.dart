@@ -171,7 +171,9 @@ class CheckoutRepository {
     var activeAttempt = attempt;
 
     if (activeAttempt.cartId == null) {
-      final response = await api.post('/api/shopping-cart', body: const {});
+      final response = await api.post('/api/shopping-cart', body: {
+        'store_id': details.storeId,
+      });
       final cartId = response is Map ? response['id']?.toString() : null;
       if (cartId == null || cartId.isEmpty) {
         throw const ApiException(
