@@ -103,7 +103,7 @@ class CheckoutRepository {
       : _random = random ?? Random.secure();
   final ApiClient api;
   final Random _random;
-  static const _attemptKey = 'checkout_attempt_v1';
+  static const _attemptKey = 'checkout_attempt_v2';
 
   Future<List<StoreLocation>> loadStores() async {
     final response = await api.get('/api/public/stores');
@@ -184,14 +184,19 @@ class CheckoutRepository {
       await _save(prefs, activeAttempt);
     }
 
-    for (final line in lines) {
-      if (activeAttempt.uploadedProductIds.contains(line.product.id)) continue;
-      await api.post('/api/shopping-cart/${activeAttempt.cartId}/items',
-          body: {'product_id': line.product.id, 'quantity': line.quantity});
-      activeAttempt = activeAttempt.copyWith(uploadedProductIds: {
-        ...activeAttempt.uploadedProductIds,
-        line.product.id
+    final productIds = lines.map((line) => line.product.id).toSet();
+    final snapshotAlreadyUploaded =
+        activeAttempt.uploadedProductIds.length == productIds.length &&
+            activeAttempt.uploadedProductIds.containsAll(productIds);
+    if (!snapshotAlreadyUploaded) {
+      await api.put('/api/shopping-cart/${activeAttempt.cartId}/items', body: {
+        'items': [
+          for (final line in lines)
+            {'product_id': line.product.id, 'quantity': line.quantity}
+        ],
       });
+      activeAttempt =
+          activeAttempt.copyWith(uploadedProductIds: productIds);
       await _save(prefs, activeAttempt);
     }
 
