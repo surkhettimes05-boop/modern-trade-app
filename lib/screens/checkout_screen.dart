@@ -490,7 +490,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const LinearProgressIndicator()
                 else ...[
                   DropdownButtonFormField<int>(
-                    value: _municipalityId,
+                    key: ValueKey('municipality-${_municipalityId ?? 'none'}'),
+                    initialValue: _municipalityId,
                     decoration:
                         const InputDecoration(labelText: 'Municipality'),
                     items: _serviceAreas
@@ -522,14 +523,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<int>(
-                    value: _wardId,
+                    key: ValueKey(
+                        'ward-${_municipalityId ?? 'none'}-${_wardId ?? 'none'}'),
+                    initialValue: _wardId,
                     decoration: const InputDecoration(labelText: 'Ward'),
                     items: (_selectedArea?.wards ?? const <DeliveryWard>[])
                         .map((ward) => DropdownMenuItem<int>(
                               value: ward.id,
                               child: Text(ward.name.isNotEmpty
                                   ? ward.name
-                                  : 'Ward ' + ward.wardNumber.toString()),
+                                  : 'Ward ${ward.wardNumber}'),
                             ))
                         .toList(growable: false),
                     onChanged: _municipalityId == null
