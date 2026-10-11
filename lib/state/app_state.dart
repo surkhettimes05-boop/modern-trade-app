@@ -44,6 +44,7 @@ class AppState extends ChangeNotifier {
   bool catalogLoading = false;
   String? error;
   static const _demoOrdersKey = 'demo_orders_v1';
+  static const _verifiedPhoneKey = 'verified_phone_v1';
 
   List<CartLine> get cart => cartController.quantities.entries
       .map((entry) {
@@ -167,6 +168,8 @@ class AppState extends ChangeNotifier {
       return;
     }
     customer = await authRepository.verifyOtp(phone, code);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_verifiedPhoneKey, phone.trim());
     notifyListeners();
   }
 
@@ -183,6 +186,11 @@ class AppState extends ChangeNotifier {
       customer = null;
     }
     notifyListeners();
+  }
+
+  Future<String?> lastVerifiedPhone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_verifiedPhoneKey);
   }
 
   Future<void> logout() async {
