@@ -14,6 +14,8 @@ class CatalogScreenState extends State<CatalogScreen> {
   final _search = TextEditingController();
   String? _category;
   var _sort = 'featured';
+  var _inStockOnly = false;
+  var _dealsOnly = false;
 
   void selectCategory(String? categoryId) =>
       setState(() => _category = categoryId);
@@ -27,11 +29,28 @@ class CatalogScreenState extends State<CatalogScreen> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
-    final items = state.search(_search.text, categoryId: _category);
+    var items = state.search(_search.text, categoryId: _category);
+    if (_inStockOnly) {
+      items = items.where((product) => product.isAvailable).toList(growable: false);
+    }
+    if (_dealsOnly) {
+      items = items
+          .where((product) => product.discountPercent > 0)
+          .toList(growable: false);
+    }
+
     final sorted = [...items];
     if (_sort == 'low') sorted.sort((a, b) => a.price.compareTo(b.price));
     if (_sort == 'high') sorted.sort((a, b) => b.price.compareTo(a.price));
-    if (_sort == 'rating') sorted.sort((a, b) => b.rating.compareTo(a.rating));
+    if (_sort == 'new') {
+      sorted.sort((a, b) => (b.createdAt ?? DateTime(1970))
+          .compareTo(a.createdAt ?? DateTime(1970)));
+    }
+    if (_sort == 'featured') {
+      sorted.sort((a, b) =>
+          (b.featured ? 1 : 0).compareTo(a.featured ? 1 : 0));
+    }
+
     return CustomScrollView(
       key: const PageStorageKey('catalog-scroll'),
       slivers: [
@@ -42,7 +61,7 @@ class CatalogScreenState extends State<CatalogScreen> {
               controller: _search,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Search products, brands and categories',
+                hintText: 'Search name, SKU, brand or category',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _search.text.isEmpty
                     ? null
@@ -83,8 +102,32 @@ class CatalogScreenState extends State<CatalogScreen> {
           ),
         ),
         SliverToBoxAdapter(
+          child: SizedBox(
+            height: 49,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              children: [
+                FilterChip(
+                  selected: _inStockOnly,
+                  label: const Text('In stock'),
+                  avatar: const Icon(Icons.inventory_2_outlined, size: 17),
+                  onSelected: (value) => setState(() => _inStockOnly = value),
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  selected: _dealsOnly,
+                  label: const Text('Deals'),
+                  avatar: const Icon(Icons.local_offer_outlined, size: 17),
+                  onSelected: (value) => setState(() => _dealsOnly = value),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
             child: Row(
               children: [
                 Expanded(
@@ -99,10 +142,11 @@ class CatalogScreenState extends State<CatalogScreen> {
                   borderRadius: BorderRadius.circular(12),
                   items: const [
                     DropdownMenuItem(
-                        value: 'featured', child: Text('Featured')),
+                        value: 'featured', child: Text('Best match')),
+                    DropdownMenuItem(
+                        value: 'new', child: Text('New arrivals')),
                     DropdownMenuItem(value: 'low', child: Text('Price: low')),
                     DropdownMenuItem(value: 'high', child: Text('Price: high')),
-                    DropdownMenuItem(value: 'rating', child: Text('Top rated')),
                   ],
                   onChanged: (value) => setState(() => _sort = value!),
                 ),
@@ -116,7 +160,7 @@ class CatalogScreenState extends State<CatalogScreen> {
             child: EmptyState(
               icon: Icons.search_off,
               title: 'No matching products',
-              message: 'Try another search or clear the category filter.',
+              message: 'Try another search or clear one of the filters.',
             ),
           )
         else
@@ -131,7 +175,7 @@ class CatalogScreenState extends State<CatalogScreen> {
                     crossAxisCount: columns,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: columns == 2 ? .58 : .62,
+                    childAspectRatio: columns == 2 ? .55 : .59,
                   ),
                   itemBuilder: (context, index) =>
                       ProductCard(product: sorted[index]),

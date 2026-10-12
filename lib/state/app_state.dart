@@ -131,6 +131,7 @@ class AppState extends ChangeNotifier {
   List<Product> products = const [];
   List<ProductCategory> categories = const [];
   List<StoreLocation> stores = const [];
+  List<StorefrontOffer> offers = const [];
   StoreLocation? selectedStore;
   Customer? customer;
   bool loading = true;
@@ -186,14 +187,16 @@ class AppState extends ChangeNotifier {
       products = catalog.products;
       categories = catalog.categories;
       stores = catalog.stores;
+      offers = catalog.offers;
       usingFallbackCatalog = false;
     } catch (exception) {
       products = _fallbackProducts;
       categories = _fallbackCategories;
+      offers = const [];
       stores = const [
         StoreLocation(
           id: 'offline-store',
-          name: 'NOVA MART',
+          name: 'Pasalho',
           address: 'Connect to the StoreSync API for live availability',
         ),
       ];
@@ -204,22 +207,58 @@ class AppState extends ChangeNotifier {
   }
 
   List<Product> search(String query, {String? categoryId}) {
-    final normalized = query.trim().toLowerCase();
-    return products
-        .where((product) {
-          final categoryMatch =
-              categoryId == null ||
-              product.categoryId == categoryId ||
-              product.category.toLowerCase() == categoryId.toLowerCase();
-          final textMatch =
-              normalized.isEmpty ||
-              '${product.name} ${product.brand} ${product.category}'
-                  .toLowerCase()
-                  .contains(normalized);
-          return categoryMatch && textMatch;
-        })
-        .toList(growable: false);
+    final normalized = _normalizeSearch(query);
+    final terms = normalized.split(' ').where((term) => term.isNotEmpty).toList();
+    final ranked = <({Product product, int score})>[];
+
+    for (final product in products) {
+      final categoryMatch =
+          categoryId == null ||
+          product.categoryId == categoryId ||
+          product.category.toLowerCase() == categoryId.toLowerCase();
+      if (!categoryMatch) continue;
+      if (terms.isEmpty) {
+        ranked.add((product: product, score: product.featured ? 8 : 0));
+        continue;
+      }
+
+      final name = _normalizeSearch(product.name);
+      final sku = _normalizeSearch(product.sku ?? '');
+      final brand = _normalizeSearch(product.brand);
+      final category = _normalizeSearch(product.category);
+      final description = _normalizeSearch(product.description);
+      final unit = _normalizeSearch(product.unit ?? '');
+      final haystack = '$name $sku $brand $category $description $unit';
+      if (!terms.every(haystack.contains)) continue;
+
+      var score = 0;
+      if (name == normalized) score += 160;
+      if (sku == normalized) score += 150;
+      if (name.startsWith(normalized)) score += 110;
+      if (sku.startsWith(normalized)) score += 100;
+      for (final term in terms) {
+        if (name.split(' ').any((token) => token.startsWith(term))) score += 35;
+        if (category.contains(term)) score += 18;
+        if (brand.contains(term)) score += 16;
+        if (description.contains(term)) score += 5;
+      }
+      if (product.featured) score += 8;
+      if (product.isAvailable) score += 3;
+      ranked.add((product: product, score: score));
+    }
+
+    ranked.sort((a, b) {
+      final score = b.score.compareTo(a.score);
+      return score != 0 ? score : a.product.name.compareTo(b.product.name);
+    });
+    return ranked.map((entry) => entry.product).toList(growable: false);
   }
+
+  String _normalizeSearch(String value) => value
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9\s-]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
 
   Future<void> selectStore(StoreLocation store) async {
     selectedStore = store;

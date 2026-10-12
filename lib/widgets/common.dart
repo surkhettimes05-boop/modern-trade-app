@@ -22,7 +22,7 @@ class NovaLogo extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              'N',
+              'P',
               style: TextStyle(
                 color: AppColors.lime,
                 fontSize: compact ? 18 : 21,
@@ -31,28 +31,12 @@ class NovaLogo extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'NOVA',
-                style: TextStyle(
-                  height: .9,
-                  letterSpacing: -.5,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                'MART',
-                style: TextStyle(
-                  height: .9,
-                  letterSpacing: -.5,
-                  color: AppColors.brand,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
+          const Text(
+            'PASALHO',
+            style: TextStyle(
+              letterSpacing: -.5,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       );
@@ -271,6 +255,41 @@ class ProductCard extends StatelessWidget {
                       color: AppColors.brand,
                       fontWeight: FontWeight.w900,
                     ),
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      Icon(
+                        product.isAvailable
+                            ? Icons.check_circle
+                            : Icons.cancel_outlined,
+                        size: 14,
+                        color: product.isAvailable
+                            ? AppColors.brand
+                            : AppColors.danger,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          product.availability
+                              .replaceAll('_', ' ')
+                              .toLowerCase()
+                              .split(' ')
+                              .where((part) => part.isNotEmpty)
+                              .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+                              .join(' '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: product.isAvailable
+                                ? AppColors.brand
+                                : AppColors.danger,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   SizedBox(

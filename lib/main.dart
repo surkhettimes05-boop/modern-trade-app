@@ -21,7 +21,7 @@ class NovaMartApp extends StatelessWidget {
   Widget build(BuildContext context) => AppScope(
         notifier: state,
         child: MaterialApp(
-          title: 'NOVA MART',
+          title: 'Pasalho',
           debugShowCheckedModeBanner: false,
           theme: buildAppTheme(),
           home: const AppShell(),

@@ -23,6 +23,8 @@ class Product {
     this.rating = 0,
     this.reviewCount = 0,
     this.unit,
+    this.createdAt,
+    this.featured = false,
   });
 
   final String id;
@@ -39,10 +41,12 @@ class Product {
   final int reviewCount;
   final String availability;
   final String? unit;
+  final DateTime? createdAt;
+  final bool featured;
 
-  /// Unknown or future backend states must fail closed.
+  /// Known sellable states remain available while unknown states fail closed.
   bool get isAvailable =>
-      const {'AVAILABLE'}.contains(availability.trim().toUpperCase());
+      const {'AVAILABLE', 'LOW_STOCK'}.contains(availability.trim().toUpperCase());
   int get priceMinor => (price * 100).round();
   int? get originalPriceMinor =>
       originalPrice == null ? null : (originalPrice! * 100).round();
@@ -58,7 +62,7 @@ class Product {
       id: _text(json['id']),
       sku: json['sku']?.toString(),
       name: _text(json['name'], 'Product'),
-      brand: _text(json['brand'], 'NOVA MART'),
+      brand: _text(json['brand'], 'Unbranded'),
       category: _text(json['category_name'], 'Everyday essentials'),
       categoryId: json['category_id']?.toString(),
       description: _text(json['description']),
@@ -71,6 +75,8 @@ class Product {
       reviewCount: int.tryParse(_text(json['review_count'], '0')) ?? 0,
       availability: _text(json['availability_status'], 'OUT_OF_STOCK'),
       unit: json['unit']?.toString() ?? json['pack_size']?.toString(),
+      createdAt: DateTime.tryParse(_text(json['created_at'])),
+      featured: json['is_featured'] == true,
     );
   }
 }
@@ -103,6 +109,50 @@ class ProductCategory {
       );
 }
 
+class StorefrontOffer {
+  const StorefrontOffer({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.startDate,
+    required this.endDate,
+    this.imageUrl,
+    this.bannerImageUrl,
+    this.featured = false,
+    this.sortOrder = 0,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final String? imageUrl;
+  final String? bannerImageUrl;
+  final DateTime startDate;
+  final DateTime endDate;
+  final bool featured;
+  final int sortOrder;
+
+  String? get displayImage {
+    final banner = bannerImageUrl?.trim();
+    if (banner != null && banner.isNotEmpty) return banner;
+    final image = imageUrl?.trim();
+    return image == null || image.isEmpty ? null : image;
+  }
+
+  factory StorefrontOffer.fromJson(Map<String, dynamic> json) => StorefrontOffer(
+        id: _text(json['id']),
+        title: _text(json['title'], 'Pasalho promotion'),
+        description: _text(json['description']),
+        imageUrl: json['image_url']?.toString(),
+        bannerImageUrl: json['banner_image_url']?.toString(),
+        startDate: DateTime.tryParse(_text(json['start_date'])) ?? DateTime.now(),
+        endDate: DateTime.tryParse(_text(json['end_date'])) ??
+            DateTime.now().add(const Duration(days: 1)),
+        featured: json['is_featured'] == true,
+        sortOrder: int.tryParse(_text(json['sort_order'], '0')) ?? 0,
+      );
+}
+
 class StoreLocation {
   const StoreLocation({
     required this.id,
@@ -122,7 +172,7 @@ class StoreLocation {
 
   factory StoreLocation.fromJson(Map<String, dynamic> json) => StoreLocation(
         id: _text(json['id']),
-        name: _text(json['name'], 'NOVA MART'),
+        name: _text(json['name'], 'Pasalho'),
         address: json['address']?.toString(),
         phone: json['phone']?.toString(),
         hours: json['hours']?.toString(),
