@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
 import '../main.dart';
+import '../models/models.dart';
 import '../widgets/common.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -11,6 +12,9 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final heroCampaign = state.campaigns.where((campaign) => campaign.isHomeHero).isNotEmpty
+        ? state.campaigns.firstWhere((campaign) => campaign.isHomeHero)
+        : (state.campaigns.isNotEmpty ? state.campaigns.first : null);
     return RefreshIndicator(
       onRefresh: state.loadCatalog,
       child: CustomScrollView(
@@ -25,7 +29,10 @@ class HomeScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: _Hero(onShop: () => onShop(null)),
+              child: _Hero(
+                onShop: () => onShop(null),
+                campaign: heroCampaign,
+              ),
             ),
           ),
           SliverToBoxAdapter(
@@ -170,13 +177,28 @@ class _SearchPrompt extends StatelessWidget {
           ),
         ),
       );
+  }
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.onShop});
+  const _Hero({required this.onShop, this.campaign});
   final VoidCallback onShop;
+  final Campaign? campaign;
   @override
-  Widget build(BuildContext context) => ClipRRect(
+  Widget build(BuildContext context) {
+    final imageUrl = campaign?.imageUrl ??
+        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=85';
+    final title = campaign?.title ?? 'Big savings for everyday living.';
+    final description = campaign?.description.isNotEmpty == true
+        ? campaign!.description
+        : 'Groceries, home essentials and more — quality products at prices made for everyday life.';
+    final eyebrow = campaign?.subtitle?.isNotEmpty == true
+        ? campaign!.subtitle!.toUpperCase()
+        : 'THIS WEEK AT PASALHO';
+    final cta = campaign?.ctaText?.isNotEmpty == true
+        ? campaign!.ctaText!
+        : "Shop today's deals";
+    return ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: SizedBox(
           height: 400,
@@ -184,7 +206,7 @@ class _Hero extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               Image.network(
-                'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=85',
+                imageUrl,
                 fit: BoxFit.cover,
               ),
               const DecoratedBox(
@@ -209,9 +231,9 @@ class _Hero extends StatelessWidget {
                         color: AppColors.lime,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Text(
-                        'THIS WEEK AT NOVA MART',
-                        style: TextStyle(
+                      child: Text(
+                        eyebrow,
+                        style: const TextStyle(
                           fontSize: 10,
                           letterSpacing: 1,
                           fontWeight: FontWeight.w900,
@@ -219,9 +241,9 @@ class _Hero extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Big savings for\neveryday living.',
-                      style: TextStyle(
+                    Text(
+                      title,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 40,
                         height: .98,
@@ -230,16 +252,17 @@ class _Hero extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Groceries, home essentials and more — quality products at prices made for everyday life.',
-                      style: TextStyle(color: Color(0xFFEDF5F0), height: 1.5),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                          color: Color(0xFFEDF5F0), height: 1.5),
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: onShop,
                       iconAlignment: IconAlignment.end,
                       icon: const Icon(Icons.arrow_forward),
-                      label: const Text("Shop today's deals"),
+                      label: Text(cta),
                     ),
                   ],
                 ),
