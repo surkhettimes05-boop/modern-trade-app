@@ -132,6 +132,7 @@ class AppState extends ChangeNotifier {
   List<ProductCategory> categories = const [];
   List<StoreLocation> stores = const [];
   List<StorefrontOffer> offers = const [];
+  List<Campaign> campaigns = const [];
   StoreLocation? selectedStore;
   Customer? customer;
   bool loading = true;
@@ -188,11 +189,13 @@ class AppState extends ChangeNotifier {
       categories = catalog.categories;
       stores = catalog.stores;
       offers = catalog.offers;
+      campaigns = catalog.campaigns;
       usingFallbackCatalog = false;
     } catch (exception) {
       products = _fallbackProducts;
       categories = _fallbackCategories;
       offers = const [];
+      campaigns = const [];
       stores = const [
         StoreLocation(
           id: 'offline-store',

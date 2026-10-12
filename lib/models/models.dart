@@ -153,6 +153,50 @@ class StorefrontOffer {
       );
 }
 
+class Campaign {
+  const Campaign({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.placements,
+    this.subtitle,
+    this.imageUrl,
+    this.ctaText,
+    this.ctaUrl,
+  });
+
+  final String id;
+  final String title;
+  final String? subtitle;
+  final String description;
+  final String? imageUrl;
+  final String? ctaText;
+  final String? ctaUrl;
+  final List<String> placements;
+
+  bool get isHomeHero =>
+      placements.contains('APP_HOME') || placements.contains('HOME_HERO');
+
+  factory Campaign.fromJson(Map<String, dynamic> json) {
+    final rawPlacements = json['placements'];
+    return Campaign(
+      id: _text(json['id']),
+      title: _text(json['title_en'], 'Pasalho'),
+      subtitle: json['subtitle_en']?.toString(),
+      description: _text(json['description_en']),
+      imageUrl: (json['mobile_banner_image_url'] ??
+              json['banner_image_url'] ??
+              json['image_url'])
+          ?.toString(),
+      ctaText: json['cta_text_en']?.toString(),
+      ctaUrl: json['cta_url']?.toString(),
+      placements: rawPlacements is List
+          ? rawPlacements.map((value) => value.toString()).toList(growable: false)
+          : const [],
+    );
+  }
+}
+
 class StoreLocation {
   const StoreLocation({
     required this.id,

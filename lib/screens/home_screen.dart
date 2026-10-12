@@ -29,6 +29,9 @@ class HomeScreen extends StatelessWidget {
         .toList(growable: false);
     final promotion = state.offers.where((offer) => offer.featured).firstOrNull ??
         state.offers.firstOrNull;
+    final campaign =
+        state.campaigns.where((item) => item.isHomeHero).firstOrNull ??
+            state.campaigns.firstOrNull;
 
     return RefreshIndicator(
       onRefresh: state.loadCatalog,
@@ -45,6 +48,7 @@ class HomeScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: _Hero(
+                campaign: campaign,
                 promotion: promotion,
                 onShop: () => onShop(null),
               ),
@@ -257,17 +261,32 @@ class _SearchPrompt extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.onShop, this.promotion});
+  const _Hero({required this.onShop, this.campaign, this.promotion});
   final VoidCallback onShop;
+  final Campaign? campaign;
   final StorefrontOffer? promotion;
 
   @override
   Widget build(BuildContext context) {
-    final image = promotion?.displayImage ??
+    final image = campaign?.imageUrl ??
+        promotion?.displayImage ??
         'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=85';
-    final title = promotion?.title ?? 'Everyday shopping,\ncloser to home.';
-    final description = promotion?.description ??
-        'Real NPR prices, live store availability, and cash on delivery with Pasalho.';
+    final title =
+        campaign?.title ?? promotion?.title ?? 'Everyday shopping,\ncloser to home.';
+    final description = campaign?.description.isNotEmpty == true
+        ? campaign!.description
+        : promotion?.description ??
+            'Real NPR prices, live store availability, and cash on delivery with Pasalho.';
+    final eyebrow = campaign?.subtitle?.trim().isNotEmpty == true
+        ? campaign!.subtitle!.trim().toUpperCase()
+        : campaign != null
+            ? 'PASALHO CAMPAIGN'
+            : promotion == null
+                ? 'PASALHO · BIRENDRANAGAR'
+                : 'PASALHO PROMOTION';
+    final cta = campaign?.ctaText?.trim().isNotEmpty == true
+        ? campaign!.ctaText!.trim()
+        : 'Shop now';
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
@@ -305,7 +324,7 @@ class _Hero extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      promotion == null ? 'PASALHO · BIRENDRANAGAR' : 'PASALHO PROMOTION',
+                      eyebrow,
                       style: const TextStyle(
                         fontSize: 10,
                         letterSpacing: 1,
@@ -337,7 +356,7 @@ class _Hero extends StatelessWidget {
                     onPressed: onShop,
                     iconAlignment: IconAlignment.end,
                     icon: const Icon(Icons.arrow_forward),
-                    label: const Text('Shop now'),
+                    label: Text(cta),
                   ),
                 ],
               ),
