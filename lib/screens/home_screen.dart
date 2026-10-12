@@ -177,7 +177,6 @@ class _SearchPrompt extends StatelessWidget {
           ),
         ),
       );
-  }
 }
 
 class _Hero extends StatelessWidget {
@@ -271,4 +270,5 @@ class _Hero extends StatelessWidget {
           ),
         ),
       );
+}
 }
