@@ -12,25 +12,42 @@ class CatalogData {
 class CatalogRepository {
   CatalogRepository(this.api);
   final ApiClient api;
+
   Future<CatalogData> load() async {
     final responses = await Future.wait([
       api.get('/api/public/products'),
       api.get('/api/public/categories'),
       api.get('/api/public/stores'),
-      api.get('/api/public/campaigns', query: const {'channel': 'APP'})
     ]);
     final products = mapList(responses[0], Product.fromJson)
         .where((p) => p.priceMinor > 0)
         .toList(growable: false);
     if (products.isEmpty) {
-      throw const ApiException('Catalog is empty',
-          kind: ApiErrorKind.invalidResponse);
+      throw const ApiException(
+        'Catalog is empty',
+        kind: ApiErrorKind.invalidResponse,
+      );
     }
+
+    List<Campaign> campaigns = const [];
+    try {
+      final response = await api.get(
+        '/api/public/campaigns',
+        query: const {'channel': 'APP'},
+      );
+      campaigns = mapList(response, Campaign.fromJson);
+    } on ApiException {
+      // Campaign creative is optional. Never take the core catalog offline
+      // because the marketing endpoint is unavailable.
+      campaigns = const [];
+    }
+
     return CatalogData(
-        products,
-        mapList(responses[1], ProductCategory.fromJson),
-        mapList(responses[2], StoreLocation.fromJson),
-        mapList(responses[3], Campaign.fromJson));
+      products,
+      mapList(responses[1], ProductCategory.fromJson),
+      mapList(responses[2], StoreLocation.fromJson),
+      campaigns,
+    );
   }
 }
 
