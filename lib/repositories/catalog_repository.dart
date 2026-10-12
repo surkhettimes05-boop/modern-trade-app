@@ -2,10 +2,11 @@ import '../core/api_client.dart';
 import '../models/models.dart';
 
 class CatalogData {
-  const CatalogData(this.products, this.categories, this.stores);
+  const CatalogData(this.products, this.categories, this.stores, this.campaigns);
   final List<Product> products;
   final List<ProductCategory> categories;
   final List<StoreLocation> stores;
+  final List<Campaign> campaigns;
 }
 
 class CatalogRepository {
@@ -15,7 +16,8 @@ class CatalogRepository {
     final responses = await Future.wait([
       api.get('/api/public/products'),
       api.get('/api/public/categories'),
-      api.get('/api/public/stores')
+      api.get('/api/public/stores'),
+      api.get('/api/public/campaigns', query: const {'channel': 'APP'})
     ]);
     final products = mapList(responses[0], Product.fromJson)
         .where((p) => p.priceMinor > 0)
@@ -27,7 +29,8 @@ class CatalogRepository {
     return CatalogData(
         products,
         mapList(responses[1], ProductCategory.fromJson),
-        mapList(responses[2], StoreLocation.fromJson));
+        mapList(responses[2], StoreLocation.fromJson),
+        mapList(responses[3], Campaign.fromJson));
   }
 }
 
