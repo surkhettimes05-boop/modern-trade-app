@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api_client.dart';
+import '../core/app_config.dart';
 import '../models/models.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/cart_controller.dart';
@@ -123,6 +127,14 @@ class AppState extends ChangeNotifier {
   }
 
   final ApiClient api;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSubscription;
+  bool _googleInitializationAttempted = false;
+  bool googleSignInReady = false;
+  bool googleAuthBusy = false;
+  String? googleAuthError;
+  String? pendingGoogleLinkToken;
+  String? pendingGoogleEmail;
   late final AuthRepository authRepository;
   late final CatalogRepository catalogRepository;
   late final CheckoutRepository checkoutRepository;
@@ -157,12 +169,16 @@ class AppState extends ChangeNotifier {
       cart.fold(0, (sum, line) => sum + line.totalMinor);
   double get cartSubtotal => cartSubtotalMinor / 100;
   bool get isSignedIn => customer != null;
+  bool get googleSignInConfigured => AppConfig.googleWebClientId.isNotEmpty;
+  bool get googleNativeButtonSupported =>
+      googleSignInReady && !kIsWeb && _googleSignIn.supportsAuthenticate();
 
   Future<void> initialize() async {
     loading = true;
     notifyListeners();
     try {
       await api.restoreSession();
+      await _initializeGoogleSignIn();
       await loadCatalog();
       await cartController.restore(products);
       final prefs = await SharedPreferences.getInstance();
@@ -244,6 +260,150 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _initializeGoogleSignIn() async {
+    if (_googleInitializationAttempted || !googleSignInConfigured) return;
+    _googleInitializationAttempted = true;
+
+    try {
+      final iosClientId = AppConfig.googleIosClientId.isNotEmpty
+          ? AppConfig.googleIosClientId
+          : null;
+      await _googleSignIn.initialize(
+        clientId: kIsWeb
+            ? AppConfig.googleWebClientId
+            : defaultTargetPlatform == TargetPlatform.iOS
+                ? iosClientId
+                : null,
+        serverClientId: kIsWeb ? null : AppConfig.googleWebClientId,
+      );
+      googleSignInReady = true;
+
+      if (kIsWeb) {
+        _googleAuthSubscription =
+            _googleSignIn.authenticationEvents.listen((event) {
+          if (event is GoogleSignInAuthenticationEventSignIn) {
+            unawaited(_handleGoogleAccount(event.user));
+          }
+        }, onError: (Object error) {
+          googleAuthBusy = false;
+          googleAuthError = _googleErrorMessage(error);
+          notifyListeners();
+        });
+      }
+    } catch (error) {
+      googleSignInReady = false;
+      googleAuthError = _googleErrorMessage(error);
+    }
+  }
+
+  Future<void> startGoogleSignIn() async {
+    if (!googleSignInConfigured || !googleSignInReady) {
+      throw const ApiException('Google sign-in is not configured yet.');
+    }
+    if (kIsWeb) {
+      throw const ApiException(
+        'Use the Google sign-in button to continue in your browser.',
+      );
+    }
+    if (!_googleSignIn.supportsAuthenticate()) {
+      throw const ApiException('Google sign-in is unavailable on this device.');
+    }
+
+    googleAuthBusy = true;
+    googleAuthError = null;
+    notifyListeners();
+    try {
+      final account = await _googleSignIn.authenticate();
+      await _handleGoogleAccount(account);
+    } catch (error) {
+      googleAuthBusy = false;
+      googleAuthError = _googleErrorMessage(error);
+      notifyListeners();
+      if (error is ApiException) rethrow;
+      throw ApiException(googleAuthError ?? 'Google sign-in failed.');
+    }
+  }
+
+  Future<void> _handleGoogleAccount(GoogleSignInAccount account) async {
+    googleAuthBusy = true;
+    googleAuthError = null;
+    notifyListeners();
+    try {
+      final idToken = account.authentication.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const ApiException(
+          'Google did not return a valid identity token. Please try again.',
+        );
+      }
+      final result = await authRepository.googleLogin(idToken);
+      if (result.customer != null) {
+        customer = result.customer;
+        pendingGoogleLinkToken = null;
+        pendingGoogleEmail = null;
+      } else if (result.linkRequired) {
+        pendingGoogleLinkToken = result.linkToken;
+        pendingGoogleEmail = result.email;
+      } else {
+        throw const ApiException('Google sign-in returned an invalid response.');
+      }
+    } catch (error) {
+      googleAuthError = _googleErrorMessage(error);
+      if (!kIsWeb) rethrow;
+    } finally {
+      googleAuthBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> linkGoogleWithOtp(String phone, String code) async {
+    final linkToken = pendingGoogleLinkToken;
+    if (linkToken == null || linkToken.isEmpty) {
+      throw const ApiException(
+        'Google linking session expired. Start Google sign-in again.',
+      );
+    }
+    customer = await authRepository.linkGoogle(
+      linkToken: linkToken,
+      phone: phone,
+      code: code,
+    );
+    pendingGoogleLinkToken = null;
+    pendingGoogleEmail = null;
+    googleAuthError = null;
+    notifyListeners();
+  }
+
+  Future<void> cancelGoogleLink() async {
+    pendingGoogleLinkToken = null;
+    pendingGoogleEmail = null;
+    googleAuthError = null;
+    if (googleSignInReady) {
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {
+        // Pasalho's own session remains authoritative; provider sign-out is best effort.
+      }
+    }
+    notifyListeners();
+  }
+
+  void clearGoogleAuthError() {
+    if (googleAuthError == null) return;
+    googleAuthError = null;
+    notifyListeners();
+  }
+
+  String _googleErrorMessage(Object error) {
+    if (error is ApiException) return error.message;
+    if (error is GoogleSignInException) {
+      if (error.code == GoogleSignInExceptionCode.canceled) {
+        return 'Google sign-in was canceled.';
+      }
+      return 'Google sign-in is unavailable. Check the app configuration and try again.';
+    }
+    return 'Google sign-in failed. Please try again.';
+  }
+
   Future<void> requestOtp(String phone) => authRepository.requestOtp(phone);
 
   Future<void> verifyOtp(String phone, String code) async {
@@ -265,7 +425,16 @@ class AppState extends ChangeNotifier {
     try {
       await authRepository.logout();
     } finally {
+      if (googleSignInReady) {
+        try {
+          await _googleSignIn.signOut();
+        } catch (_) {
+          // Pasalho session logout must succeed even if provider sign-out fails.
+        }
+      }
       customer = null;
+      pendingGoogleLinkToken = null;
+      pendingGoogleEmail = null;
       notifyListeners();
     }
   }
@@ -319,6 +488,7 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    unawaited(_googleAuthSubscription?.cancel());
     api.close();
     super.dispose();
   }
