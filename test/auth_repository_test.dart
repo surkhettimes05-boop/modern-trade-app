@@ -30,6 +30,59 @@ void main() {
         repo.verifyOtp('9812345678', '000000'), throwsA(isA<ApiException>()));
   });
 
+  test('Google login returns existing customer', () async {
+    late Map<String, dynamic> body;
+    final repo = AuthRepository(testApi((request) async {
+      body = jsonDecode(request.body) as Map<String, dynamic>;
+      return jsonResponse({
+        'link_required': false,
+        'customer': {'id': 'google-customer'}
+      });
+    }));
+
+    final result = await repo.googleLogin('signed-google-id-token');
+    expect(body, {'id_token': 'signed-google-id-token'});
+    expect(result.linkRequired, isFalse);
+    expect(result.customer?.id, 'google-customer');
+  });
+
+  test('first Google login requires verified phone link', () async {
+    final repo = AuthRepository(testApi((_) async => jsonResponse({
+          'link_required': true,
+          'link_token': 'short-lived-link-token',
+          'google_profile': {'email': 'asha@example.com'}
+        })));
+
+    final result = await repo.googleLogin('signed-google-id-token');
+    expect(result.customer, isNull);
+    expect(result.linkRequired, isTrue);
+    expect(result.linkToken, 'short-lived-link-token');
+    expect(result.email, 'asha@example.com');
+  });
+
+  test('Google link sends phone proof and maps customer', () async {
+    late Map<String, dynamic> body;
+    final repo = AuthRepository(testApi((request) async {
+      body = jsonDecode(request.body) as Map<String, dynamic>;
+      return jsonResponse({
+        'customer': {'id': 'linked-customer'}
+      });
+    }));
+
+    final customer = await repo.linkGoogle(
+      linkToken: 'short-lived-link-token',
+      phone: '9812345678',
+      code: '123456',
+    );
+
+    expect(body, {
+      'link_token': 'short-lived-link-token',
+      'phone': '9812345678',
+      'otp_code': '123456',
+    });
+    expect(customer.id, 'linked-customer');
+  });
+
   test('session validation restores customer', () async {
     final repo = AuthRepository(testApi((_) async => jsonResponse({
           'customer': {'id': 'restored'}
