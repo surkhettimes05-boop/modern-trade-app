@@ -83,7 +83,10 @@ Codemagic expects a secured `nova_mart_android_signing` variable group containin
 `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and
 `ANDROID_KEY_PASSWORD`. Set `API_BASE_URL` to the production HTTPS API. Optional
 `SUPPORT_PHONE`, `PRIVACY_POLICY_URL`, and `TERMS_URL` values control the support
-and external policy actions. No signing value belongs in source control.
+and external policy actions. Set `GOOGLE_WEB_CLIENT_ID` to the Google OAuth web
+client ID to enable Continue with Google in Android/web builds. Android must also
+be registered for package `com.novamart.modern_trade_flutter` with the signing
+certificate fingerprints used by the build. No signing value belongs in source control.
 
 Prices are parsed from numeric or string API values and totals use integer paisa
 internally. This supports decimal prices while avoiding floating-point total drift.
