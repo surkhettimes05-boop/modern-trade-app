@@ -39,6 +39,7 @@ class AppState extends ChangeNotifier {
   final CartController cartController = CartController();
   List<Product> products = const [];
   List<ProductCategory> categories = const [];
+  List<Campaign> campaigns = const [];
   Customer? customer;
   bool loading = true;
   bool catalogLoading = false;
@@ -104,15 +105,18 @@ class AppState extends ChangeNotifier {
       if (isDemo) {
         products = DemoData.products;
         categories = DemoData.categories;
+        campaigns = const [];
         return;
       }
       final catalog = await catalogRepository.load();
       products = catalog.products;
       categories = catalog.categories;
+      campaigns = catalog.campaigns;
     } catch (exception) {
       if (clearExisting) {
         products = const [];
         categories = const [];
+        campaigns = const [];
       }
       error = userMessage(exception);
     } finally {
@@ -326,6 +330,7 @@ class AppState extends ChangeNotifier {
   Future<void> _initializeDemo() async {
     products = DemoData.products;
     categories = DemoData.categories;
+    campaigns = const [];
     customer = DemoData.customer;
     await cartController.restore(products);
   }
