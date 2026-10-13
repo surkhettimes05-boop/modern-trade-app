@@ -81,6 +81,7 @@ class AppState extends ChangeNotifier {
       } catch (exception) {
         products = const [];
         categories = const [];
+        campaigns = const [];
         error = userMessage(exception);
       }
       if (api.hasSession) await validateSession();
@@ -98,6 +99,7 @@ class AppState extends ChangeNotifier {
     if (clearExisting) {
       products = const [];
       categories = const [];
+      campaigns = const [];
     }
     notifyListeners();
     try {
