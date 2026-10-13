@@ -7,6 +7,7 @@ on:
       - main
       - codex/sync-production-flutter
       - release/v1-flutter-reconcile
+      - fix/firebase-live-campaigns
   pull_request:
     branches: [main]
 
@@ -27,6 +28,8 @@ jobs:
         run: flutter test
       - name: Demo compile contract
         run: flutter test --dart-define=APP_ENV=demo test/demo_mode_compile_test.dart
+      - name: Validate production web build
+        run: flutter build web --release --dart-define=APP_ENV=production --dart-define=API_BASE_URL=https://storesync-backend-dg8z.onrender.com
       - name: Generate disposable CI release signing key
         run: |
           keytool -genkeypair -keystore "$RUNNER_TEMP/ci-release.jks" -storepass ci-release-only -keypass ci-release-only -alias ci-release -keyalg RSA -validity 1 -dname "CN=CI Release,O=Pasalho,C=NP"
