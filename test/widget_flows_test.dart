@@ -32,7 +32,7 @@ void main() {
     final state = AppState();
     await tester.pumpWidget(scoped(state, const LoginScreen()));
     await tester.enterText(find.byType(TextField), '123');
-    await tester.tap(find.text('Send OTP'));
+    await tester.tap(find.text('Continue with mobile'));
     await tester.pump();
     expect(find.text('Enter a valid Nepal mobile number'), findsOneWidget);
     expect(find.textContaining('Development OTP'), findsNothing);
