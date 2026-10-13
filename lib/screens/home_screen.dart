@@ -12,6 +12,16 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
     final departments = shopDepartments(state.categories, state.products);
+    Campaign? campaign;
+    for (final item in state.campaigns) {
+      if (item.isHomeHero) {
+        campaign = item;
+        break;
+      }
+    }
+    if (campaign == null && state.campaigns.isNotEmpty) {
+      campaign = state.campaigns.first;
+    }
     final care = state.products
         .where((p) => RegExp('care|clean|laundry')
             .hasMatch(inferredDepartment(p).toLowerCase()))
@@ -41,47 +51,85 @@ class HomeScreen extends StatelessWidget {
                                     color: AppColors.muted, fontSize: 13)))
                       ]))),
               const SizedBox(height: 18),
-              LayoutBuilder(
-                  builder: (context, constraints) => Container(
-                      height: constraints.maxWidth > 700 ? 260 : 215,
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(18),
-                          gradient: const LinearGradient(
-                              colors: [Color(0xFFEAF7E3), Color(0xFFD3ECC0)])),
-                      child: Stack(children: [
-                        Positioned(
-                            right: -30,
-                            bottom: -20,
-                            width: constraints.maxWidth > 700 ? 400 : 160,
-                            height: constraints.maxWidth > 700 ? 290 : 170,
-                            child: Transform.rotate(
-                                angle: -.07,
-                                child: Image.asset(
-                                    'assets/images/storefront/snacks.png',
-                                    fit: BoxFit.cover))),
-                        Padding(
-                            padding: const EdgeInsets.all(22),
+              LayoutBuilder(builder: (context, constraints) {
+                final campaignImage = campaign?.imageUrl?.trim();
+                final campaignSubtitle = campaign?.subtitle?.trim();
+                final campaignTitle = campaign?.title.trim();
+                final campaignDescription = campaign?.description.trim();
+                final campaignCta = campaign?.ctaText?.trim();
+                return Container(
+                    height: constraints.maxWidth > 700 ? 260 : 215,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        gradient: const LinearGradient(
+                            colors: [Color(0xFFEAF7E3), Color(0xFFD3ECC0)])),
+                    child: Stack(children: [
+                      Positioned(
+                          right: -30,
+                          bottom: -20,
+                          width: constraints.maxWidth > 700 ? 400 : 160,
+                          height: constraints.maxWidth > 700 ? 290 : 170,
+                          child: campaignImage != null &&
+                                  campaignImage.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: Image.network(
+                                    campaignImage,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Image.asset(
+                                      'assets/images/storefront/snacks.png',
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                )
+                              : Transform.rotate(
+                                  angle: -.07,
+                                  child: Image.asset(
+                                      'assets/images/storefront/snacks.png',
+                                      fit: BoxFit.cover))),
+                      Padding(
+                          padding: const EdgeInsets.all(22),
+                          child: SizedBox(
+                            width: constraints.maxWidth > 700
+                                ? constraints.maxWidth * .62
+                                : constraints.maxWidth * .68,
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Row(
+                                  Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.eco_outlined,
+                                        const Icon(Icons.eco_outlined,
                                             size: 14, color: AppColors.brand),
-                                        SizedBox(width: 5),
-                                        Text('EVERYDAY ESSENTIALS',
-                                            style: TextStyle(
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.w800,
-                                                color: AppColors.brand,
-                                                letterSpacing: .8))
+                                        const SizedBox(width: 5),
+                                        Flexible(
+                                          child: Text(
+                                              campaignSubtitle != null &&
+                                                      campaignSubtitle.isNotEmpty
+                                                  ? campaignSubtitle
+                                                      .toUpperCase()
+                                                  : campaign != null
+                                                      ? 'PASALHO CAMPAIGN'
+                                                      : 'EVERYDAY ESSENTIALS',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: AppColors.brand,
+                                                  letterSpacing: .8)),
+                                        )
                                       ]),
                                   const SizedBox(height: 12),
                                   Text(
-                                      'Your everyday basket.\nA little greener.',
+                                      campaignTitle != null &&
+                                              campaignTitle.isNotEmpty
+                                          ? campaignTitle
+                                          : 'Your everyday basket.\nA little greener.',
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                           fontSize: constraints.maxWidth > 700
                                               ? 38
@@ -91,9 +139,14 @@ class HomeScreen extends StatelessWidget {
                                           height: 1.12,
                                           color: AppColors.brand)),
                                   const SizedBox(height: 8),
-                                  const Text(
-                                      'Good things for your daily routine.',
-                                      style: TextStyle(
+                                  Text(
+                                      campaignDescription != null &&
+                                              campaignDescription.isNotEmpty
+                                          ? campaignDescription
+                                          : 'Good things for your daily routine.',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
                                           fontSize: 11,
                                           color: AppColors.muted)),
                                   const SizedBox(height: 14),
@@ -106,16 +159,21 @@ class HomeScreen extends StatelessWidget {
                                               textStyle: const TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w800)),
-                                          child: const Row(
+                                          child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Text('Start shopping'),
-                                                SizedBox(width: 8),
-                                                Icon(Icons.arrow_forward,
+                                                Text(campaignCta != null &&
+                                                        campaignCta.isNotEmpty
+                                                    ? campaignCta
+                                                    : 'Start shopping'),
+                                                const SizedBox(width: 8),
+                                                const Icon(Icons.arrow_forward,
                                                     size: 14)
                                               ])))
-                                ]))
-                      ]))),
+                                ]),
+                          ))
+                    ]));
+              }),
               const SizedBox(height: 26),
               SectionHeading(
                   title: 'Shop by category',

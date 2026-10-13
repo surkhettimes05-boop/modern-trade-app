@@ -2,9 +2,10 @@ import '../core/api_client.dart';
 import '../models/models.dart';
 
 class CatalogData {
-  const CatalogData(this.products, this.categories);
+  const CatalogData(this.products, this.categories, this.campaigns);
   final List<Product> products;
   final List<ProductCategory> categories;
+  final List<Campaign> campaigns;
 }
 
 class CatalogRepository {
@@ -20,10 +21,30 @@ class CatalogRepository {
         .where((p) => p.id.isNotEmpty && p.priceMinor > 0)
         .toList(growable: false);
     if (products.isEmpty) {
-      throw const ApiException('No products are currently available.',
-          kind: ApiErrorKind.invalidResponse);
+      throw const ApiException(
+        'No products are currently available.',
+        kind: ApiErrorKind.invalidResponse,
+      );
     }
-    return CatalogData(products, mapList(responses[1], ProductCategory.fromJson));
+
+    List<Campaign> campaigns = const [];
+    try {
+      final response = await api.get(
+        '/api/public/campaigns',
+        query: const {'channel': 'APP'},
+      );
+      campaigns = mapList(response, Campaign.fromJson);
+    } on ApiException {
+      // Campaign content is optional. A marketing endpoint failure must never
+      // make the live catalog unavailable.
+      campaigns = const [];
+    }
+
+    return CatalogData(
+      products,
+      mapList(responses[1], ProductCategory.fromJson),
+      campaigns,
+    );
   }
 }
 
