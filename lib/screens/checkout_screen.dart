@@ -259,11 +259,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (savedName.isNotEmpty) _name.text = savedName;
       if (savedPhone.isNotEmpty) _phone.text = savedPhone;
       _address.text = streetAddress;
-      _city.text =
-          value('city').isNotEmpty ? value('city') : value('municipality');
-      _state.text =
-          value('state').isNotEmpty ? value('state') : value('province');
+      _city.text = value('municipality_name').isNotEmpty
+          ? value('municipality_name')
+          : (value('city').isNotEmpty ? value('city') : value('municipality'));
+      _state.text = value('province_name').isNotEmpty
+          ? value('province_name')
+          : (value('state').isNotEmpty ? value('state') : value('province'));
       _postalCode.text = value('postal_code');
+      final savedMunicipalityId = int.tryParse(value('municipality_id'));
+      final savedWardId = int.tryParse(value('ward_id'));
+      if (savedMunicipalityId != null) {
+        _draftMunicipalityId = savedMunicipalityId;
+        _municipalityId = savedMunicipalityId;
+      }
+      if (savedWardId != null) {
+        _draftWardId = savedWardId;
+        _wardId = savedWardId;
+      }
       final instructions = value('delivery_instructions');
       if (instructions.isNotEmpty) _notes.text = instructions;
     });
