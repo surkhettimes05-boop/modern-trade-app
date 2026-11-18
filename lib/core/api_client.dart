@@ -62,7 +62,9 @@ class ApiClient {
       {required this.baseUrl,
       http.Client? client,
       SecureSessionStore? sessionStore,
-      this.onSessionExpired})
+      this.onSessionExpired,
+      this.sessionCookieName = 'customer_session',
+      this.csrfCookieName = 'customer_csrf'})
       : _client = client ?? http.Client(),
         _store = sessionStore ?? const FlutterSecureSessionStore();
 
@@ -70,6 +72,8 @@ class ApiClient {
   final http.Client _client;
   final SecureSessionStore _store;
   SessionExpiredCallback? onSessionExpired;
+  final String sessionCookieName;
+  final String csrfCookieName;
   String? _sessionToken;
   String? _csrfToken;
   bool _handlingUnauthorized = false;
@@ -77,8 +81,8 @@ class ApiClient {
   bool get hasSession => _sessionToken?.isNotEmpty == true;
 
   Future<void> restoreSession() async {
-    _sessionToken = await _store.read('customer_session');
-    _csrfToken = await _store.read('customer_csrf');
+    _sessionToken = await _store.read(sessionCookieName);
+    _csrfToken = await _store.read(csrfCookieName);
   }
 
   Uri _uri(String path, [Map<String, String>? query]) {
@@ -94,8 +98,8 @@ class ApiClient {
       'content-type': 'application/json'
     };
     if (_sessionToken != null) {
-      final cookies = <String>['customer_session=$_sessionToken'];
-      if (_csrfToken != null) cookies.add('customer_csrf=$_csrfToken');
+      final cookies = <String>['$sessionCookieName=$_sessionToken'];
+      if (_csrfToken != null) cookies.add('$csrfCookieName=$_csrfToken');
       headers['cookie'] = cookies.join('; ');
     }
     if (mutation && _csrfToken != null) headers['x-csrf-token'] = _csrfToken!;
@@ -143,17 +147,19 @@ class ApiClient {
   Future<void> _captureCookies(http.Response response) async {
     final setCookie = response.headers['set-cookie'];
     if (setCookie == null) return;
-    final session =
-        RegExp(r'customer_session=([^;,]+)').firstMatch(setCookie)?.group(1);
-    final csrf =
-        RegExp(r'customer_csrf=([^;,]+)').firstMatch(setCookie)?.group(1);
+    final session = RegExp('$sessionCookieName=([^;,]+)')
+        .firstMatch(setCookie)
+        ?.group(1);
+    final csrf = RegExp('$csrfCookieName=([^;,]+)')
+        .firstMatch(setCookie)
+        ?.group(1);
     if (session != null && session.isNotEmpty) {
       _sessionToken = session;
-      await _store.write('customer_session', session);
+      await _store.write(sessionCookieName, session);
     }
     if (csrf != null && csrf.isNotEmpty) {
       _csrfToken = csrf;
-      await _store.write('customer_csrf', csrf);
+      await _store.write(csrfCookieName, csrf);
     }
   }
 
@@ -213,8 +219,8 @@ class ApiClient {
   Future<void> clearSession() async {
     _sessionToken = null;
     _csrfToken = null;
-    await _store.delete('customer_session');
-    await _store.delete('customer_csrf');
+    await _store.delete(sessionCookieName);
+    await _store.delete(csrfCookieName);
   }
 
   void close() => _client.close();

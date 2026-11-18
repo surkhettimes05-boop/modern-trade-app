@@ -7,6 +7,7 @@ import 'info_screen.dart';
 import 'login_screen.dart';
 import 'loyalty_screen.dart';
 import 'orders_screen.dart';
+import 'creator_screen.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
@@ -112,6 +113,16 @@ class AccountScreen extends StatelessWidget {
                 onTap: () => Navigator.push<void>(
                   context,
                   MaterialPageRoute(builder: (_) => const OrdersScreen()),
+                ),
+              ),
+              const Divider(height: 1, indent: 58),
+              _AccountTile(
+                icon: Icons.campaign_outlined,
+                title: 'Creator programme',
+                subtitle: 'Referral link, sales and rewards',
+                onTap: () => Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CreatorScreen()),
                 ),
               ),
               const Divider(height: 1, indent: 58),
